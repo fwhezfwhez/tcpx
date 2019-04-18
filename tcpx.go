@@ -46,7 +46,7 @@ func (tcpx *TcpX) ListenAndServe(network, addr string) error {
 		if tcpx.OnConnect != nil {
 			tcpx.OnConnect(ctx)
 		}
-		go func(ctx *Context, tcpx *TcpX) {
+		func(ctx *Context, tcpx *TcpX) {
 			defer ctx.Conn.Close()
 			if tcpx.OnClose != nil {
 				defer tcpx.OnClose(ctx)
@@ -77,7 +77,6 @@ func (tcpx *TcpX) ListenAndServe(network, addr string) error {
 				}
 				content = make([]byte, contentLength)
 
-
 				//var buffer = bytes.NewBuffer(nil)
 				//_, e = buffer.ReadFrom(ctx.Conn)
 				_, e = ctx.Conn.Read(content)
@@ -101,7 +100,7 @@ func (tcpx *TcpX) ListenAndServe(network, addr string) error {
 						log.Println(fmt.Sprintf("messageID %d handler not found", messageID))
 						break
 					}
-					handler(ctx)
+					go handler(ctx)
 				}
 			}
 		}(ctx, tcpx)

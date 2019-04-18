@@ -3,8 +3,8 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"errorX"
 	"fmt"
+	"github.com/fwhezfwhez/errorx"
 	"net"
 	"tcpx"
 )
