@@ -51,33 +51,36 @@ func (tcpx *TcpX) ListenAndServe(network, addr string) error {
 			if tcpx.OnClose != nil {
 				defer tcpx.OnClose(ctx)
 			}
+			// 16 byte info stream
+			var info = make([]byte, 16, 16)
 			for {
-				// 16 byte info stream
-				var info = make([]byte, 16, 16)
+				info = info[:16]
 				// content stream
 				var content []byte
+				fmt.Println("before read from conn, info", info)
 
 				n, e := ctx.Conn.Read(info)
-
+				fmt.Println("after read from conn, info, n", info, n)
 				if e != nil {
 					fmt.Println(errorx.Wrap(e).Error())
 					break
 				}
+				if n != 16 {
+					fmt.Println(errors.New(fmt.Sprintf("read info should be 16 but got %d", n)))
+					break
+				}
 				ctx.PerRequestContext = &sync.Map{}
-				contentLength,e := ctx.Packx.LengthOf(info)
+				contentLength, e := ctx.Packx.LengthOf(info)
 				if e != nil {
 					fmt.Println(errorx.Wrap(e).Error())
 					break
 				}
 				content = make([]byte, contentLength)
-				if n != 16 {
-					fmt.Println(errors.New(fmt.Sprintf("read info should be 16 but got %d", n)))
-					break
-				}
+
 
 				//var buffer = bytes.NewBuffer(nil)
 				//_, e = buffer.ReadFrom(ctx.Conn)
-				_,e =ctx.Conn.Read(content)
+				_, e = ctx.Conn.Read(content)
 				if e != nil {
 					fmt.Println(errorx.Wrap(e).Error())
 					break
@@ -98,7 +101,7 @@ func (tcpx *TcpX) ListenAndServe(network, addr string) error {
 						log.Println(fmt.Sprintf("messageID %d handler not found", messageID))
 						break
 					}
-					go handler(ctx)
+					handler(ctx)
 				}
 			}
 		}(ctx, tcpx)

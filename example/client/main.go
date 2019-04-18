@@ -22,6 +22,7 @@ func main() {
 			buf := <-received
 			var message tcpx.Message
 			var receivedString string
+			fmt.Println(buf)
 			message, e := packx.Unpack(buf, &receivedString)
 			if e != nil {
 				panic(errorx.Wrap(e))
@@ -35,7 +36,9 @@ func main() {
 		panic(e)
 	}
 	conn.Write(buf)
-
+	conn.Write(buf)
+	conn.Write(buf)
+	conn.Write(buf)
 	select {}
 }
 

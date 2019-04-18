@@ -27,7 +27,7 @@ func OnClose(c *tcpx.Context) {
 func SayHello(c *tcpx.Context) {
 	var messageFromClient string
 	var messageInfo tcpx.Message
-
+	fmt.Println(c.Stream)
 	messageInfo, e := c.Bind(&messageFromClient)
 	if e!=nil {
 		panic(e)
