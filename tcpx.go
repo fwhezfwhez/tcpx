@@ -2,9 +2,8 @@ package tcpx
 
 import (
 	"errorX"
-	"errors"
 	"fmt"
-	"log"
+
 	"net"
 	"sync"
 )
@@ -39,7 +38,7 @@ func (tcpx *TcpX) ListenAndServe(network, addr string) error {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			fmt.Println(err.Error())
+			Logger.Println(err.Error())
 			continue
 		}
 		ctx := NewContext(conn, tcpx.Packx.Marshaller)
@@ -51,57 +50,32 @@ func (tcpx *TcpX) ListenAndServe(network, addr string) error {
 			if tcpx.OnClose != nil {
 				defer tcpx.OnClose(ctx)
 			}
-			// 16 byte info stream
-			var info = make([]byte, 16, 16)
+			var e error
 			for {
-				info = info[:16]
-				// content stream
-				var content []byte
-				fmt.Println("before read from conn, info", info)
-
-				n, e := ctx.Conn.Read(info)
-				fmt.Println("after read from conn, info, n", info, n)
+				ctx.Stream, e = ctx.Packx.FirstBlockOf(ctx.Conn)
 				if e != nil {
-					fmt.Println(errorx.Wrap(e).Error())
-					break
-				}
-				if n != 16 {
-					fmt.Println(errors.New(fmt.Sprintf("read info should be 16 but got %d", n)))
+					Logger.Println(e)
 					break
 				}
 				ctx.PerRequestContext = &sync.Map{}
-				contentLength, e := ctx.Packx.LengthOf(info)
-				if e != nil {
-					fmt.Println(errorx.Wrap(e).Error())
-					break
-				}
-				content = make([]byte, contentLength)
-
-				//var buffer = bytes.NewBuffer(nil)
-				//_, e = buffer.ReadFrom(ctx.Conn)
-				_, e = ctx.Conn.Read(content)
-				if e != nil {
-					fmt.Println(errorx.Wrap(e).Error())
-					break
-				}
-				//content = buffer.Bytes()
-				ctx.Stream = append(info, content...)
-
-				if tcpx.OnMessage != nil {
-					go tcpx.OnMessage(ctx)
-				} else {
-					messageID, e := tcpx.Packx.MessageIDOf(info)
-					if e != nil {
-						fmt.Println(errorx.Wrap(e).Error())
-						break
+				go func(ctx *Context, tcpx *TcpX) {
+					if tcpx.OnMessage != nil {
+						go tcpx.OnMessage(ctx)
+					} else {
+						messageID, e := tcpx.Packx.MessageIDOf(ctx.Stream)
+						if e != nil {
+							Logger.Println(errorx.Wrap(e).Error())
+							return
+						}
+						handler, ok := tcpx.Mux.Handlers[messageID]
+						if !ok {
+							Logger.Println(fmt.Sprintf("messageID %d handler not found", messageID))
+							return
+						}
+						handler(ctx)
 					}
-					handler, ok := tcpx.Mux.Handlers[messageID]
-					if !ok {
-						log.Println(fmt.Sprintf("messageID %d handler not found", messageID))
-						break
-					}
-					go handler(ctx)
-				}
+				}(ctx, tcpx)
+				continue
 			}
 		}(ctx, tcpx)
 	}

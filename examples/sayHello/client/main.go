@@ -39,24 +39,21 @@ func main() {
 	conn.Write(buf)
 	conn.Write(buf)
 	conn.Write(buf)
+
 	select {}
 }
 
 func Receive(conn net.Conn) <-chan []byte {
-	var info = make([]byte, 16, 16)
-	var content []byte
 	var received = make(chan []byte, 200)
 	go func() {
 		for {
-			conn.Read(info)
-			length, e := packx.LengthOf(info)
-			if e != nil {
-				panic(e)
+			buf, e:=packx.FirstBlockOf(conn)
+			if e!=nil {
+				fmt.Println(e.Error())
+				break
 			}
-			content = make([]byte, length)
-			conn.Read(content)
-
-			received <- append(info, content ...)
+			received <- buf
+			continue
 		}
 	}()
 	return received

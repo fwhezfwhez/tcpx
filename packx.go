@@ -4,14 +4,16 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
+	"strconv"
 )
 
 type Packx struct {
 	Marshaller Marshaller
 }
-
-
+// a package scoped packx instance
+var packx = NewPackx(nil)
 
 // New a packx instance, specific a marshaller for communication.
 // If marshaller is nil, official jsonMarshaller is put to used.
@@ -25,6 +27,7 @@ func NewPackx(marshaller Marshaller) *Packx {
 }
 
 // Pack src with specific messageID and optional headers
+// Src has not been marshaled yet.Whatever you put as src, it will be marshaled by packx.Marshaller.
 func (packx Packx) Pack(messageID int32, src interface{}, headers ... map[string]interface{}) ([]byte, error) {
 	if headers == nil || len(headers) == 0 {
 		return PackWithMarshaller(Message{MessageID: messageID, Header: nil, Body: src}, packx.Marshaller)
@@ -39,7 +42,10 @@ func (packx Packx) Pack(messageID int32, src interface{}, headers ... map[string
 }
 
 // Unpack
-// Before use this users should be aware of which struct should be used as `dest`.
+// Stream is a block of length,messageID,headerLength,bodyLength,header,body.
+// Dest refers to the body, it can be dynamic by messageID.
+//
+// Before use this, users should be aware of which struct used as `dest`.
 // You can use stream's messageID for judgement like:
 // messageID,_:= packx.MessageIDOf(stream)
 // switch messageID {
@@ -51,6 +57,12 @@ func (packx Packx) Pack(messageID int32, src interface{}, headers ... map[string
 // }
 func (packx Packx) Unpack(stream []byte, dest interface{}) (Message, error) {
 	return UnpackWithMarshaller(stream, dest, packx.Marshaller)
+}
+
+// a stream from a reader can be apart by protocol.
+// FirstBlockOf helps tear apart the first block []byte from reader
+func (packx Packx) FirstBlockOf(r io.Reader) ([]byte, error) {
+	return UnpackToBlockFromReader(r)
 }
 
 // messageID of a stream.
@@ -87,7 +99,6 @@ func (packx Packx) BodyLengthOf(stream []byte) (int32, error) {
 	bodyLength := binary.BigEndian.Uint32(stream[12:16])
 	return int32(bodyLength), nil
 }
-
 
 // PackWithMarshaller will encode message into blocks of length,messageID,headerLength,header,bodyLength,body.
 // Users don't need to know how pack serializes itself if users use UnpackPWithMarshaller.
@@ -179,3 +190,47 @@ func UnpackWithMarshaller(stream []byte, dest interface{}, marshaller Marshaller
 	}, nil
 }
 
+// unpack the first block from the reader.
+// protocol is PackWithMarshaller().
+// [4]byte -- length             fixed_size,binary big endian encode
+// [4]byte -- messageID          fixed_size,binary big endian encode
+// [4]byte -- headerLength       fixed_size,binary big endian encode
+// [4]byte -- bodyLength         fixed_size,binary big endian encode
+// []byte -- header              marshal by marshaller
+// []byte -- body                marshal by marshaller
+// ussage:
+// for {
+//     blockBuf, e:= UnpackToBlockFromReader(reader)
+// 	   go func(buf []byte){
+//         // handle a message block apart
+//     }(blockBuf)
+//     continue
+// }
+func UnpackToBlockFromReader(reader io.Reader) ([]byte, error) {
+	if reader == nil {
+		return nil, errors.New("reader is nil")
+	}
+	var info = make([]byte, 4, 4)
+	n, e := reader.Read(info)
+	if e != nil {
+		return nil, e
+	}
+
+	if n != 4 {
+		return nil, errors.New("can't read 4 length info block from reader, but read " + strconv.Itoa(n))
+	}
+	length, e := packx.LengthOf(info)
+	if e != nil {
+		return nil, e
+	}
+	var content = make([]byte, length, length)
+	n, e = reader.Read(content)
+	if e != nil {
+		return nil, e
+	}
+	if n != int(length) {
+		return nil, errors.New(fmt.Sprintf("can't read %d length content block from reader, but read %d", length, n))
+	}
+
+	return append(info, content ...), nil
+}

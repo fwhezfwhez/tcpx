@@ -57,10 +57,3 @@ func TestTCPx_Property(t *testing.T) {
 	fmt.Println(packx.MessageIDOf(buf))
 }
 
-
-func TestPack_Json(t *testing.T) {
-	packx := NewPackx(JsonMarshaller{})
-	buf ,e :=packx.Pack(2,"hello")
-
-
-}
