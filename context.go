@@ -3,9 +3,13 @@ package tcpx
 import (
 	"errorX"
 	"net"
+	"strings"
 	"sync"
 )
 
+const (
+	ABORT = 2019
+)
 // Context has two concurrently safe context:
 // PerConnectionContext is used for connection, once the connection is built ,this is connection scope.
 // PerRequestContext is used for request, when connection was built, then many requests can be sent between client and server.
@@ -19,6 +23,11 @@ type Context struct {
 
 	Packx  *Packx
 	Stream []byte
+
+	// used to control middleware abort or next
+	// offset == ABORT, abort
+	// else next
+	offset int
 }
 
 func NewContext(conn net.Conn, marshaller Marshaller) *Context {
@@ -49,6 +58,8 @@ func (ctx *Context) SetCtxPerRequest(k, v interface{}) {
 func (ctx *Context) GetCtxPerRequest(k interface{}) (interface{}, bool) {
 	return ctx.PerRequestContext.Load(k)
 }
+
+// Reply to client using ctx's well-set Packx.Marshaller.
 func (ctx *Context) Reply(messageID int32, src interface{}, headers ...map[string]interface{}) error {
 	var buf []byte
 	var e error
@@ -60,6 +71,8 @@ func (ctx *Context) Reply(messageID int32, src interface{}, headers ...map[strin
 	return nil
 }
 
+// Reply to client using json marshaller.
+// Whatever ctx.Packx.Marshaller.MarshalName is 'json' or not , message block will marshal its header and body by json marshaller.
 func (ctx *Context) JSON(messageID int32, src interface{}, headers ...map[string]interface{}) error {
 	var buf []byte
 	var e error
@@ -80,3 +93,119 @@ func (ctx *Context) JSON(messageID int32, src interface{}, headers ...map[string
 
 	return nil
 }
+
+// not finished
+func (ctx *Context) XML(messageID int32, src interface{}, headers ...map[string]interface{}) error {
+	var buf []byte
+	var e error
+	if ctx.Packx.Marshaller.MarshalName() != "json" {
+		buf, e = NewPackx(JsonMarshaller{}).Pack(messageID, src, headers...)
+		if e != nil {
+			return errorx.Wrap(e)
+		}
+		_, e = ctx.Conn.Write(buf)
+		if e != nil {
+			return errorx.Wrap(e)
+		}
+	}
+	buf, e = ctx.Packx.Pack(messageID, src, headers ...)
+	if _, e = ctx.Conn.Write(buf); e != nil {
+		return errorx.Wrap(e)
+	}
+
+	return nil
+}
+
+// not finished
+func (ctx *Context) TOML(messageID int32, src interface{}, headers ...map[string]interface{}) error {
+	var buf []byte
+	var e error
+	if ctx.Packx.Marshaller.MarshalName() != "json" {
+		buf, e = NewPackx(JsonMarshaller{}).Pack(messageID, src, headers...)
+		if e != nil {
+			return errorx.Wrap(e)
+		}
+		_, e = ctx.Conn.Write(buf)
+		if e != nil {
+			return errorx.Wrap(e)
+		}
+	}
+	buf, e = ctx.Packx.Pack(messageID, src, headers ...)
+	if _, e = ctx.Conn.Write(buf); e != nil {
+		return errorx.Wrap(e)
+	}
+
+	return nil
+}
+
+// not finished
+func (ctx *Context) YAML(messageID int32, src interface{}, headers ...map[string]interface{}) error {
+	var buf []byte
+	var e error
+	if ctx.Packx.Marshaller.MarshalName() != "json" {
+		buf, e = NewPackx(JsonMarshaller{}).Pack(messageID, src, headers...)
+		if e != nil {
+			return errorx.Wrap(e)
+		}
+		_, e = ctx.Conn.Write(buf)
+		if e != nil {
+			return errorx.Wrap(e)
+		}
+	}
+	buf, e = ctx.Packx.Pack(messageID, src, headers ...)
+	if _, e = ctx.Conn.Write(buf); e != nil {
+		return errorx.Wrap(e)
+	}
+
+	return nil
+}
+
+// not finished
+func (ctx *Context) ProtoBuf(messageID int32, src interface{}, headers ...map[string]interface{}) error {
+	var buf []byte
+	var e error
+	if ctx.Packx.Marshaller.MarshalName() != "json" {
+		buf, e = NewPackx(JsonMarshaller{}).Pack(messageID, src, headers...)
+		if e != nil {
+			return errorx.Wrap(e)
+		}
+		_, e = ctx.Conn.Write(buf)
+		if e != nil {
+			return errorx.Wrap(e)
+		}
+	}
+	buf, e = ctx.Packx.Pack(messageID, src, headers ...)
+	if _, e = ctx.Conn.Write(buf); e != nil {
+		return errorx.Wrap(e)
+	}
+
+	return nil
+}
+
+// client ip
+func (ctx Context) ClientIP() string {
+	arr := strings.Split(ctx.Conn.RemoteAddr().String(), ":")
+	// ipv4
+	if len(arr) == 2 {
+		return arr[0]
+	}
+	// [::1] 本机
+	if strings.Contains(ctx.Conn.RemoteAddr().String(), "[") && strings.Contains(ctx.Conn.RemoteAddr().String(), "]") {
+		return "127.0.0.1"
+	}
+	// ivp6
+	return strings.Join(arr[:len(arr)-1], ":")
+}
+
+func (ctx *Context) Abort() {
+	ctx.offset = ABORT
+}
+// Since middlewares are divided into 3 kinds: global, messageIDSelfRelated, DynamicUse,
+// offset can't be used straightly to control middlewares like  middlewares[offset]()
+func (ctx *Context) Next(){
+	ctx.offset ++
+}
+func (ctx *Context) ResetOffset(){
+	ctx.offset = 0
+}
+

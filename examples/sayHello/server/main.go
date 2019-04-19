@@ -12,6 +12,8 @@ func main() {
 	srv.OnConnect = OnConnect
 	// mux routine and OnMessage callback can't meet .
 	// when srv.OnMessage has set, srv.AddHandler() makes no sense, it means user wants to handle raw message stream by self.
+
+	srv.Use("middleware1", Middleware1, "middleware2",Middleware2)
 	srv.AddHandler(1, SayHello)
 	// srv.OnMessage = OnMessage
 
@@ -22,7 +24,7 @@ func main() {
 }
 
 func OnConnect(c *tcpx.Context){
-	fmt.Println(fmt.Sprintf("connecting from remote host %s network %s", c.Conn.RemoteAddr().String(), c.Conn.RemoteAddr().Network()))
+	fmt.Println(fmt.Sprintf("connecting from remote host %s network %s", c.ClientIP(), c.Conn.RemoteAddr().Network()))
 }
 func OnClose(c *tcpx.Context) {
 	fmt.Println(fmt.Sprintf("connecting from remote host %s network %s has stoped", c.Conn.RemoteAddr().String(), c.Conn.RemoteAddr().Network()))
@@ -45,6 +47,14 @@ func SayHello(c *tcpx.Context) {
 	e = c.Reply(responseMessageID, "hello")
 	fmt.Println("reply:", "hello")
 	if e!=nil {
-		panic(e)
+		fmt.Println(e.Error())
 	}
+}
+
+func Middleware1(c *tcpx.Context) {
+	fmt.Println("I am middleware 1")
+}
+
+func Middleware2(c *tcpx.Context) {
+	fmt.Println("I am middleware 2")
 }

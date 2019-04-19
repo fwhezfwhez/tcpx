@@ -39,7 +39,6 @@ func main() {
 	conn.Write(buf)
 	conn.Write(buf)
 	conn.Write(buf)
-
 	select {}
 }
 
