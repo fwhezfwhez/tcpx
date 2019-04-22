@@ -1,8 +1,8 @@
 package tcpx
 
 import (
-	"errorX"
 	"fmt"
+	"github.com/fwhezfwhez/errorx"
 	"io"
 	"reflect"
 

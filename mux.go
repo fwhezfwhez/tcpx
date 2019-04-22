@@ -1,9 +1,9 @@
 package tcpx
 
 import (
-	"errorX"
 	"errors"
 	"fmt"
+	"github.com/fwhezfwhez/errorx"
 	"log"
 	"sync"
 )
@@ -200,7 +200,7 @@ func (mux *Mux) execMessageIDMiddlewares(ctx *Context, messageID int32) {
 	}
 	ctx.ResetOffset()
 	var middlewareAnchorIndex, messagIDAnchorIndex int
-	var  middlewareExpireAnchorIndex int
+	var middlewareExpireAnchorIndex int
 	for k, middlewareAnchor := range mux.MiddlewareAnchorMap {
 		middlewareAnchorIndex, middlewareExpireAnchorIndex = mux.AnchorIndoexOfMiddleware(k)
 		messagIDAnchorIndex = mux.AnchorIndexOfMessageID(messageID)

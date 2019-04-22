@@ -1,7 +1,7 @@
 package tcpx
 
 import (
-	"errorX"
+	"github.com/fwhezfwhez/errorx"
 	"net"
 	"strings"
 	"sync"
