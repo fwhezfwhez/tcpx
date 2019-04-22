@@ -8,14 +8,16 @@ import (
 func main() {
 	srv := tcpx.NewTcpX(tcpx.JsonMarshaller{})
 
-	// if mode is DEBUG, error in framework will log with error spot and time in detail
+	// If mode is DEBUG, error in framework will log with error spot and time in detail
 	// tcpx.SetLogMode(tcpx.DEBUG)
 
 	srv.OnClose = OnClose
 	srv.OnConnect = OnConnect
 
-	// mux routine and OnMessage callback can't meet .
-	// when srv.OnMessage has set, srv.AddHandler() makes no sense, it means user wants to handle raw message stream by self.
+	// Mux routine and OnMessage callback can't meet .
+	// When srv.OnMessage has set, srv.AddHandler() makes no sense, it means user wants to handle raw message stream by self.
+	// Besides, if OnMessage is not nil, middlewares of global type(by srv.UseGlobal) and anchor type(by srv.Use, srv.UnUse)
+	// will all be executed regardless of an anchor type middleware being unUsed or not. 
 	// srv.OnMessage = OnMessage
 
 	srv.UseGlobal(MiddlewareGlobal)
