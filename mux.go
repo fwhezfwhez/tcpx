@@ -4,19 +4,22 @@ import (
 	"errorX"
 	"errors"
 	"fmt"
+	"log"
 	"sync"
 )
 
-const(
+const (
 	NOT_EXPIRE = 2019
 )
-// mux is used to register different request by messageID
-// middlewares are divided into 3 kinds:
-// 1. global  --> GlobalMiddlewares
-// 2. messageIDSelfRelated --> MessageIDSelfMiddleware
-// 3. DynamicUsed --> MiddlewareAnchors.
+
+// Mux is used to register different request by messageID
+// Middlewares are divided into 3 kinds:
+// 1. global  --> GlobalTypeMiddlewares
+// 2. messageIDSelfRelated --> SelfRelatedTypeMiddleware
+// 3. DynamicUsed --> AnchorTypeMiddleware.
 // ATTENTION:
-// middlewares are executed in order of 1 ->3 -> 2
+// Middlewares are executed in order of 1 ->3 -> 2
+// if OnMessage is not nil, GlobalTypeMiddlewares and AnchorTypeMiddleware will all be executed regardless of unUsed or not
 type Mux struct {
 	Mutex    *sync.RWMutex
 	Handlers map[int32]func(ctx *Context)
@@ -80,7 +83,7 @@ func (mux *Mux) AnchorIndexOfMessageID(messageID int32) int {
 }
 
 // get anchor index of a middleware
-func (mux *Mux) AnchorIndoexOfMiddleware(middlewareKey string) (int,int) {
+func (mux *Mux) AnchorIndoexOfMiddleware(middlewareKey string) (int, int) {
 	mux.Mutex.RLock()
 	defer mux.Mutex.RUnlock()
 
@@ -88,7 +91,7 @@ func (mux *Mux) AnchorIndoexOfMiddleware(middlewareKey string) (int,int) {
 	if !ok {
 		panic(errorx.NewFromStringf("middlewareKey '%s' anchor not found in mux.MiddlewareAnchorMap", middlewareKey))
 	}
-	return anchor.AnchorIndex,anchor.ExpireAnchorIndex
+	return anchor.AnchorIndex, anchor.ExpireAnchorIndex
 }
 
 // add anchor index binding to middlewares
@@ -109,6 +112,7 @@ func (mux *Mux) AddMiddlewareAnchor(anchor MiddlewareAnchor) {
 	mux.MiddlewareAnchors = append(mux.MiddlewareAnchors, anchor)
 }
 
+// Used to reset anchor's ExpiredAnchorIndex, avoiding operate map straightly.
 func (mux *Mux) ReplaceMiddlewareAnchor(anchor MiddlewareAnchor) {
 	mux.Mutex.Lock()
 	defer mux.Mutex.Unlock()
@@ -123,9 +127,7 @@ func (mux *Mux) ReplaceMiddlewareAnchor(anchor MiddlewareAnchor) {
 		panic(errorx.NewFromStringf("mux.MiddlewareAnchorMap['%s'] not exists, can't use ReplaceMiddlewareAnchor", anchor.MiddlewareKey))
 	}
 	mux.MiddlewareAnchorMap[anchor.MiddlewareKey] = anchor
-	mux.MiddlewareAnchors = append(mux.MiddlewareAnchors, anchor)
 }
-
 
 // add messageID anchor
 func (mux *Mux) AddMessageIDAnchor(anchor MessageIDAnchor) {
@@ -142,6 +144,28 @@ func (mux *Mux) AddMessageIDAnchor(anchor MessageIDAnchor) {
 	mux.MessageIDAnchorMap[anchor.MessageID] = anchor
 }
 
+// add middleware by srv.Add(1, middleware1, middleware2, handler)
+func (mux *Mux) AddMessageIDSelfMiddleware(messageID int32, handlers ... func(c *Context)) {
+	mux.Mutex.Lock()
+	defer mux.Mutex.Unlock()
+
+	_, ok := mux.MessageIDSelfMiddleware[messageID]
+	if ok {
+		panic(errorx.NewFromStringf("messageIDSelfMiddleware[%d] already exist", messageID))
+	}
+	if handlers != nil && len(handlers) > 0 {
+		mux.MessageIDSelfMiddleware[messageID] = make([]func(ctx *Context), 0, 10)
+		mux.MessageIDSelfMiddleware[messageID] = append(mux.MessageIDSelfMiddleware[messageID], handlers...)
+	}
+
+}
+
+func (mux *Mux) AddGlobalMiddleware(handlers ... func(c *Context)) {
+	mux.Mutex.Lock()
+	defer mux.Mutex.Unlock()
+	mux.GlobalMiddlewares = append(mux.GlobalMiddlewares, handlers ...)
+}
+
 // Exec all registered middlewares.
 // this function is designed to exec when tcpx.OnMessage is not nil, on this case mutex routine makes no sense, all registered
 // middlewares regardless use or unUse will be exec.
@@ -156,7 +180,8 @@ func (mux *Mux) execAllMiddlewares(ctx *Context) {
 		}
 	}
 	ctx.ResetOffset()
-	for _, middlewareAnchor := range mux.MiddlewareAnchors {
+	for key, middlewareAnchor := range mux.MiddlewareAnchors {
+		log.Println(key)
 		middlewareAnchor.Middleware(ctx)
 		if ctx.offset == ABORT {
 			return
@@ -165,6 +190,7 @@ func (mux *Mux) execAllMiddlewares(ctx *Context) {
 	ctx.ResetOffset()
 }
 
+// exec middlewares added by srv.Add(1, middleware1, middleware2, handler)
 func (mux *Mux) execMessageIDMiddlewares(ctx *Context, messageID int32) {
 	for _, handler := range mux.GlobalMiddlewares {
 		handler(ctx)
@@ -173,7 +199,8 @@ func (mux *Mux) execMessageIDMiddlewares(ctx *Context, messageID int32) {
 		}
 	}
 	ctx.ResetOffset()
-	var middlewareAnchorIndex,middlewareExpireAnchorIndex, messagIDAnchorIndex int
+	var middlewareAnchorIndex, messagIDAnchorIndex int
+	var  middlewareExpireAnchorIndex int
 	for k, middlewareAnchor := range mux.MiddlewareAnchorMap {
 		middlewareAnchorIndex, middlewareExpireAnchorIndex = mux.AnchorIndoexOfMiddleware(k)
 		messagIDAnchorIndex = mux.AnchorIndexOfMessageID(messageID)
@@ -203,17 +230,12 @@ func (mux *Mux) execMessageIDMiddlewares(ctx *Context, messageID int32) {
 
 }
 
-func (mux *Mux) AddMessageIDSelfMiddleware(messageID int32, handlers ... func(c *Context)) {
-	mux.Mutex.Lock()
-	defer mux.Mutex.Unlock()
-
-	_, ok :=mux.MessageIDSelfMiddleware[messageID]
-	if ok{
-		panic(errorx.NewFromStringf("messageIDSelfMiddleware[%d] already exist", messageID))
+func (mux *Mux) execGlobalMiddlewares(ctx *Context) {
+	for _, handler := range mux.GlobalMiddlewares {
+		handler(ctx)
+		if ctx.offset == ABORT {
+			return
+		}
 	}
-	if handlers ==nil {
-		mux.MessageIDSelfMiddleware[messageID] = make([]func(ctx *Context), 0,10)
-		mux.MessageIDSelfMiddleware[messageID] = append(mux.MessageIDSelfMiddleware[messageID], handlers...)
-	}
-
+	ctx.ResetOffset()
 }

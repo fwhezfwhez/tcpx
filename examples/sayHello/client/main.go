@@ -1,12 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
+	"github.com/fwhezfwhez/tcpx"
 	"net"
-	"tcpx"
 )
 
 var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
@@ -31,13 +30,10 @@ func main() {
 			fmt.Println("服务端消息:", receivedString)
 		}
 	}()
-	buf, e := packx.Pack(1, "hello,I am client xiao ming")
+	buf, e := packx.Pack(5, "hello,I am client xiao ming")
 	if e != nil {
 		panic(e)
 	}
-	conn.Write(buf)
-	conn.Write(buf)
-	conn.Write(buf)
 	conn.Write(buf)
 	select {}
 }
@@ -46,27 +42,13 @@ func Receive(conn net.Conn) <-chan []byte {
 	var received = make(chan []byte, 200)
 	go func() {
 		for {
-			buf, e:=packx.FirstBlockOf(conn)
-			if e!=nil {
+			buf, e := packx.FirstBlockOf(conn)
+			if e != nil {
 				fmt.Println(e.Error())
 				break
 			}
 			received <- buf
 			continue
-		}
-	}()
-	return received
-}
-
-// fucking buffer
-func Receive2(conn net.Conn) <-chan []byte {
-	var buffer = bytes.NewBuffer(nil)
-	var received = make(chan []byte, 0)
-	go func() {
-		for {
-			buffer.Reset()
-			buffer.ReadFrom(conn)
-			received <- buffer.Bytes()
 		}
 	}()
 	return received
