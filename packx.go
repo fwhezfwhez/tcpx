@@ -166,6 +166,26 @@ func PackWithMarshaller(message Message, marshaller Marshaller) ([]byte, error) 
 	return packet, nil
 }
 
+// same as above
+func PackWithMarshallerName(message Message, marshallerName string) ([]byte, error) {
+	var marshaller Marshaller
+	switch marshallerName {
+	case "json":
+		marshaller = JsonMarshaller{}
+	case "xml":
+		marshaller = XmlMarshaller{}
+	case "toml", "tml":
+		marshaller = TomlMarshaller{}
+	case "yaml", "yml":
+		marshaller = YamlMarshaller{}
+	case "protobuf", "proto":
+		marshaller = ProtobufMarshaller{}
+	default:
+		return nil, errors.New("only accept ['json', 'xml', 'toml','yaml','protobuf']")
+	}
+	return PackWithMarshaller(message, marshaller)
+}
+
 // unpack stream from PackWithMarshaller
 // If users want to use this protocol across languages, here are the protocol details:
 // (they are ordered as list)
@@ -204,6 +224,26 @@ func UnpackWithMarshaller(stream []byte, dest interface{}, marshaller Marshaller
 		Header:    header,
 		Body:      reflect.Indirect(reflect.ValueOf(dest)).Interface(),
 	}, nil
+}
+
+// same as above
+func UnpackWithMarshallerName(stream []byte, dest interface{}, marshallerName string) (Message, error) {
+	var marshaller Marshaller
+	switch marshallerName {
+	case "json":
+		marshaller = JsonMarshaller{}
+	case "xml":
+		marshaller = XmlMarshaller{}
+	case "toml", "tml":
+		marshaller = TomlMarshaller{}
+	case "yaml", "yml":
+		marshaller = YamlMarshaller{}
+	case "protobuf", "proto":
+		marshaller = ProtobufMarshaller{}
+	default:
+		return Message{}, errors.New("only accept ['json', 'xml', 'toml','yaml','protobuf']")
+	}
+	return UnpackWithMarshaller(stream, dest, marshaller)
 }
 
 // unpack the first block from the reader.
