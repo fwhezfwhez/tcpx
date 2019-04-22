@@ -1,7 +1,12 @@
-# tcpx
-[![Godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/fwhezfwhez/tcpx)
-[![Build Status]( https://www.travis-ci.org/fwhezfwhez/tcpx.svg?branch=master)]( https://www.travis-ci.org/fwhezfwhez/tcpx)
-[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/fwhezfwhez-tcpx/community)
+<p align="center">
+	<a href="github.com/fwhezfwhez/tcpx"><img src="http://i1.bvimg.com/684630/1866f4faad40119b.png" width="450"></a>
+</p>
+
+<p align="center">
+	<a href="https://godoc.org/github.com/fwhezfwhez/SuperChecker"><img src="http://img.shields.io/badge/godoc-reference-blue.svg?style=flat"></a>
+	<a href="https://www.travis-ci.org/fwhezfwhez/tcpx"><img src="https://www.travis-ci.org/fwhezfwhez/tcpx.svg?branch=master"></a>
+	<a href="https://gitter.im/fwhezfwhez-tcpx/community"><img src="https://badges.gitter.im/Join%20Chat.svg"></a>
+</p>
 
 a very convenient tcp framework in golang.
 
