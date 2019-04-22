@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-var packx = Packx{Marshaller: JsonMarshaller{}}
+var pack = Packx{Marshaller: JsonMarshaller{}}
 
 func TestTCPx_Pack_UnPack(t *testing.T) {
 	type Request struct {
@@ -16,7 +16,7 @@ func TestTCPx_Pack_UnPack(t *testing.T) {
 		Username: "packx",
 		Age:      24,
 	}
-	buf, e := packx.Pack(1, clientRequest, map[string]interface{}{
+	buf, e := pack.Pack(1, clientRequest, map[string]interface{}{
 		"note": "this is a map note",
 	})
 	if e!=nil {
@@ -26,7 +26,7 @@ func TestTCPx_Pack_UnPack(t *testing.T) {
 	fmt.Println("内容:",buf)
 
 	var serverRequest  Request
-	message, e:= packx.Unpack(buf, &serverRequest)
+	message, e:= pack.Unpack(buf, &serverRequest)
 	if e !=nil {
 		panic(e)
 	}
@@ -43,7 +43,7 @@ func TestTCPx_Property(t *testing.T) {
 		Username: "packx",
 		Age:      24,
 	}
-	buf, e := packx.Pack(1, clientRequest, map[string]interface{}{
+	buf, e := pack.Pack(1, clientRequest, map[string]interface{}{
 		"note": "this is a map note",
 	})
 	if e!=nil {
@@ -52,8 +52,8 @@ func TestTCPx_Property(t *testing.T) {
 	fmt.Println("客户端发送请求:", clientRequest)
 	fmt.Println("内容:",buf)
 
-	fmt.Println(packx.BodyLengthOf(buf))
-	fmt.Println(packx.HeaderLengthOf(buf))
-	fmt.Println(packx.MessageIDOf(buf))
+	fmt.Println(pack.BodyLengthOf(buf))
+	fmt.Println(pack.HeaderLengthOf(buf))
+	fmt.Println(pack.MessageIDOf(buf))
 }
 
