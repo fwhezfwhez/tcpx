@@ -131,7 +131,7 @@ func main(){
     ...
 }
 ```
-If you're not golang client, see **FAQ-3.5**
+If you're not golang client, see **[3.5 How client (not only golang) builds expected stream?](#35-how-client-not-only-golang-builds-expected-stream)**
 ### 3.4 How to specific marshal type?
 Now, tcpx supports json,xml,protobuf,toml,yaml like:
 client
@@ -205,7 +205,7 @@ It's on developing. future tcpx will support two other pack rule:
 1. Based on messageID block system, users design inner protocols in mesesage.Body.
 2. Completely different from messageID block system, users redesign stream rule.
 
-messageID block system can refer to **FAQ-3.5**.
+messageID block system can refer to **[3.5 How client (not only golang) builds expected stream?](#35-how-client-not-only-golang-builds-expected-stream)**.
 
 ### 3.7 How to separate handlers?
 tcpx's official advised routing way is separating handlers by messageID, like
