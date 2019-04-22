@@ -197,11 +197,14 @@ func (ctx Context) ClientIP() string {
 	return strings.Join(arr[:len(arr)-1], ":")
 }
 
+// stop middleware chain
 func (ctx *Context) Abort() {
 	ctx.offset = ABORT
 }
-// Since middlewares are divided into 3 kinds: global, messageIDSelfRelated, DynamicUse,
-// offset can't be used straightly to control middlewares like  middlewares[offset]()
+
+// Since middlewares are divided into 3 kinds: global, messageIDSelfRelated, anchorType,
+// offset can't be used straightly to control middlewares like  middlewares[offset]().
+// Thus, c.Next() means actually do nothing.
 func (ctx *Context) Next(){
 	ctx.offset ++
 }

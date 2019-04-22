@@ -1,0 +1,16 @@
+language: go
+go:
+  - 1.9.x
+  - 1.10.x
+  - 1.11.x
+env:
+  - GOARCH=amd64
+  - GOARCH=386
+sudo: true
+go_import_path: github.com/fwhezfwhez/tcpx
+before_install:
+  - go get github.com/fwhezfwhez/errorx
+script:
+  - go test ./
+notifications:
+  email: false

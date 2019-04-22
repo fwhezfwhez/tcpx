@@ -17,7 +17,7 @@ func main() {
 	// Mux routine and OnMessage callback can't meet .
 	// When srv.OnMessage has set, srv.AddHandler() makes no sense, it means user wants to handle raw message stream by self.
 	// Besides, if OnMessage is not nil, middlewares of global type(by srv.UseGlobal) and anchor type(by srv.Use, srv.UnUse)
-	// will all be executed regardless of an anchor type middleware being unUsed or not. 
+	// will all be executed regardless of an anchor type middleware being unUsed or not.
 	// srv.OnMessage = OnMessage
 
 	srv.UseGlobal(MiddlewareGlobal)
@@ -40,8 +40,8 @@ func OnConnect(c *tcpx.Context) {
 func OnClose(c *tcpx.Context) {
 	fmt.Println(fmt.Sprintf("connecting from remote host %s network %s has stoped", c.Conn.RemoteAddr().String(), c.Conn.RemoteAddr().Network()))
 }
-func OnMessage(c *tcpx.Context) {
-	fmt.Println(fmt.Sprintf("receive stream from client %v", c.Stream))
+func onMessage(c *tcpx.Context) {
+
 }
 func SayHello(c *tcpx.Context) {
 	var messageFromClient string
@@ -102,6 +102,7 @@ func SayName(c *tcpx.Context) {
 
 func Middleware1(c *tcpx.Context) {
 	fmt.Println("I am middleware 1 exampled by 'srv.Use(\"middleware1\", Middleware1)'")
+	c.Abort()
 }
 
 func Middleware2(c *tcpx.Context) {

@@ -30,7 +30,10 @@ func main() {
 			fmt.Println("服务端消息:", receivedString)
 		}
 	}()
-	buf, e := packx.Pack(5, "hello,I am client xiao ming")
+	buf, e := packx.Pack(5, "hello,I am client xiao ming", map[string]interface{}{
+		"api": "/tcpx/client1/",
+	})
+
 	if e != nil {
 		panic(e)
 	}
