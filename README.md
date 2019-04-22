@@ -1,11 +1,11 @@
 <p align="center">
-	<a href="github.com/fwhezfwhez/tcpx"><img src="http://i1.bvimg.com/684630/1866f4faad40119b.png" width="450"></a>
+    <a href="github.com/fwhezfwhez/tcpx"><img src="http://i1.bvimg.com/684630/1866f4faad40119b.png" width="450"></a>
 </p>
 
 <p align="center">
-	<a href="https://godoc.org/github.com/fwhezfwhez/SuperChecker"><img src="http://img.shields.io/badge/godoc-reference-blue.svg?style=flat"></a>
-	<a href="https://www.travis-ci.org/fwhezfwhez/tcpx"><img src="https://www.travis-ci.org/fwhezfwhez/tcpx.svg?branch=master"></a>
-	<a href="https://gitter.im/fwhezfwhez-tcpx/community"><img src="https://badges.gitter.im/Join%20Chat.svg"></a>
+    <a href="https://godoc.org/github.com/fwhezfwhez/SuperChecker"><img src="http://img.shields.io/badge/godoc-reference-blue.svg?style=flat"></a>
+    <a href="https://www.travis-ci.org/fwhezfwhez/tcpx"><img src="https://www.travis-ci.org/fwhezfwhez/tcpx.svg?branch=master"></a>
+    <a href="https://gitter.im/fwhezfwhez-tcpx/community"><img src="https://badges.gitter.im/Join%20Chat.svg"></a>
 </p>
 
 a very convenient tcp framework in golang.
@@ -48,26 +48,26 @@ https://github.com/fwhezfwhez/tcpx/tree/master/examples/sayHello
 Middlewares in tcpx has three types: `GlobalTypeMiddleware`, `MessageIDSelfRelatedTypeMiddleware`,`AnchorTypeMiddleware`.
 `GlobalTypeMiddleware`:
 ```go
-	srv := tcpx.NewTcpX(tcpx.JsonMarshaller{})
-	srv.UseGlobal(MiddlewareGlobal)
+    srv := tcpx.NewTcpX(tcpx.JsonMarshaller{})
+    srv.UseGlobal(MiddlewareGlobal)
 ```
 `MessageIDSelfRelatedTypeMiddleware`:
 ```go
-	srv := tcpx.NewTcpX(tcpx.JsonMarshaller{})
+    srv := tcpx.NewTcpX(tcpx.JsonMarshaller{})
     srv.AddHandler(5, Middleware3, SayName)
 ```
 `AnchorTypeMiddleware`:
 ```go
-	srv := tcpx.NewTcpX(tcpx.JsonMarshaller{})
-	srv.Use("middleware1", Middleware1, "middleware2", Middleware2)
-	srv.AddHandler(5, SayName)
+    srv := tcpx.NewTcpX(tcpx.JsonMarshaller{})
+    srv.Use("middleware1", Middleware1, "middleware2", Middleware2)
+    srv.AddHandler(5, SayName)
 ```
 `middleware example`:
 ```go
 func Middleware1(c *tcpx.Context) {
-	fmt.Println("I am middleware 1 exampled by 'srv.Use(\"middleware1\", Middleware1)'")
-	// c.Next()
-	// c.Abort()
+    fmt.Println("I am middleware 1 exampled by 'srv.Use(\"middleware1\", Middleware1)'")
+    // c.Next()
+    // c.Abort()
 }
 ```
 `middleware order`:
@@ -81,38 +81,38 @@ if one of middleware has called `c.Abort()`, middleware chain stops.
 Here is part of source code:
 ```go
 go func(ctx *Context, tcpx *TcpX) {
-		if tcpx.OnMessage != nil {
-			tcpx.Mux.execAllMiddlewares(ctx)
-			tcpx.OnMessage(ctx)
-		} else {
-			messageID, e := tcpx.Packx.MessageIDOf(ctx.Stream)
-			if e != nil {
-				Logger.Println(errorx.Wrap(e).Error())
-				return
-			}
-			handler, ok := tcpx.Mux.Handlers[messageID]
-			if !ok {
-				Logger.Println(fmt.Sprintf("messageID %d handler not found", messageID))
-				return
-			}
+        if tcpx.OnMessage != nil {
+            tcpx.Mux.execAllMiddlewares(ctx)
+            tcpx.OnMessage(ctx)
+        } else {
+            messageID, e := tcpx.Packx.MessageIDOf(ctx.Stream)
+            if e != nil {
+                Logger.Println(errorx.Wrap(e).Error())
+                return
+            }
+            handler, ok := tcpx.Mux.Handlers[messageID]
+            if !ok {
+                Logger.Println(fmt.Sprintf("messageID %d handler not found", messageID))
+                return
+            }
 
-			tcpx.Mux.execMessageIDMiddlewares(ctx, messageID)
-			handler(ctx)
-		}
-	}(ctx, tcpx)
+            tcpx.Mux.execMessageIDMiddlewares(ctx, messageID)
+            handler(ctx)
+        }
+    }(ctx, tcpx)
 ```
 As you can see,it's ok if you do it like:
 ```go
 func main(){
     ...
-	srv := tcpx.NewTcpX(tcpx.JsonMarshaller{})
-	srv.OnMessage = onMessage
+    srv := tcpx.NewTcpX(tcpx.JsonMarshaller{})
+    srv.OnMessage = onMessage
     ...
 }
 func onMessage(c *tcpx.Context){
-	func(stream []byte){
-	    // handle raw stream
-	}(c.Stream)
+    func(stream []byte){
+        // handle raw stream
+    }(c.Stream)
 }
 ```
 **Attention**: Stream has been packed per request, no pack stuck probelm. 
@@ -122,13 +122,13 @@ You don't need to design message block yourself.Instead do it like:
 client
 ```go
 func main(){
-	var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
-	buf1, e := packx.Pack(5, "hello,I am client xiao ming")
-	buf2, e := packx.Pack(7, struct{
-	Username string
-	Age int
-	}{"xiaoming", 5})
-	...
+    var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
+    buf1, e := packx.Pack(5, "hello,I am client xiao ming")
+    buf2, e := packx.Pack(7, struct{
+    Username string
+    Age int
+    }{"xiaoming", 5})
+    ...
 }
 ```
 If you're not golang client, see **FAQ-3.5**
@@ -154,13 +154,13 @@ if you want any marshal way else, design it like:
 ```go
 type OtherMarshaller struct{}
 func (om OtherMarshaller) Marshal(v interface{}) ([]byte, error) {
-	return []byte(""), nil
+    return []byte(""), nil
 }
 func (om OtherMarshaller) Unmarshal(data []byte, dest interface{}) error {
-	return nil
+    return nil
 }
 func (om OtherMarshaller) MarshalName() string{
-	return "other_marshaller"
+    return "other_marshaller"
 }
 ```
 client
@@ -211,31 +211,31 @@ messageID block system can refer to **FAQ-3.5**.
 tcpx's official advised routing way is separating handlers by messageID, like
 ```go
 func main(){
-	srv := tcpx.NewTcpX(tcpx.JsonMarshaller{})
-	// request messageID 1
-	// response messageID 2
-	srv.AddHandler(1, SayHello)
-	if e := srv.ListenAndServe("tcp", ":7171"); e != nil {
-		panic(e)
-	}
+    srv := tcpx.NewTcpX(tcpx.JsonMarshaller{})
+    // request messageID 1
+    // response messageID 2
+    srv.AddHandler(1, SayHello)
+    if e := srv.ListenAndServe("tcp", ":7171"); e != nil {
+        panic(e)
+    }
 }
 func SayHello(c *tcpx.Context) {
-	var messageFromClient string
-	var messageInfo tcpx.Message
-	messageInfo, e := c.Bind(&messageFromClient)
-	if e != nil {
-		panic(e)
-	}
-	fmt.Println("receive messageID:", messageInfo.MessageID)
-	fmt.Println("receive header:", messageInfo.Header)
-	fmt.Println("receive body:", messageInfo.Body)
+    var messageFromClient string
+    var messageInfo tcpx.Message
+    messageInfo, e := c.Bind(&messageFromClient)
+    if e != nil {
+        panic(e)
+    }
+    fmt.Println("receive messageID:", messageInfo.MessageID)
+    fmt.Println("receive header:", messageInfo.Header)
+    fmt.Println("receive body:", messageInfo.Body)
 
-	var responseMessageID int32 = 2
-	e = c.Reply(responseMessageID, "hello")
-	fmt.Println("reply:", "hello")
-	if e != nil {
-		fmt.Println(e.Error())
-	}
+    var responseMessageID int32 = 2
+    e = c.Reply(responseMessageID, "hello")
+    fmt.Println("reply:", "hello")
+    if e != nil {
+        fmt.Println(e.Error())
+    }
 }
 
 ```
