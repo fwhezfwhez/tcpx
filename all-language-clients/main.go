@@ -3,10 +3,10 @@ package main
 
 import (
 	"encoding/xml"
+	"github.com/fwhezfwhez/tcpx"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/cors"
 	"net/http"
-	"tcpx"
 	"time"
 )
 
