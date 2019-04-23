@@ -101,8 +101,8 @@ func (ctx *Context) JSON(messageID int32, src interface{}, headers ...map[string
 func (ctx *Context) XML(messageID int32, src interface{}, headers ...map[string]interface{}) error {
 	var buf []byte
 	var e error
-	if ctx.Packx.Marshaller.MarshalName() != "json" {
-		buf, e = NewPackx(JsonMarshaller{}).Pack(messageID, src, headers...)
+	if ctx.Packx.Marshaller.MarshalName() != "xml" {
+		buf, e = NewPackx(XmlMarshaller{}).Pack(messageID, src, headers...)
 		if e != nil {
 			return errorx.Wrap(e)
 		}
@@ -123,8 +123,8 @@ func (ctx *Context) XML(messageID int32, src interface{}, headers ...map[string]
 func (ctx *Context) TOML(messageID int32, src interface{}, headers ...map[string]interface{}) error {
 	var buf []byte
 	var e error
-	if ctx.Packx.Marshaller.MarshalName() != "json" {
-		buf, e = NewPackx(JsonMarshaller{}).Pack(messageID, src, headers...)
+	if ctx.Packx.Marshaller.MarshalName() != "toml" {
+		buf, e = NewPackx(TomlMarshaller{}).Pack(messageID, src, headers...)
 		if e != nil {
 			return errorx.Wrap(e)
 		}
@@ -145,8 +145,8 @@ func (ctx *Context) TOML(messageID int32, src interface{}, headers ...map[string
 func (ctx *Context) YAML(messageID int32, src interface{}, headers ...map[string]interface{}) error {
 	var buf []byte
 	var e error
-	if ctx.Packx.Marshaller.MarshalName() != "json" {
-		buf, e = NewPackx(JsonMarshaller{}).Pack(messageID, src, headers...)
+	if ctx.Packx.Marshaller.MarshalName() != "yaml" {
+		buf, e = NewPackx(YamlMarshaller{}).Pack(messageID, src, headers...)
 		if e != nil {
 			return errorx.Wrap(e)
 		}
@@ -167,8 +167,8 @@ func (ctx *Context) YAML(messageID int32, src interface{}, headers ...map[string
 func (ctx *Context) ProtoBuf(messageID int32, src interface{}, headers ...map[string]interface{}) error {
 	var buf []byte
 	var e error
-	if ctx.Packx.Marshaller.MarshalName() != "json" {
-		buf, e = NewPackx(JsonMarshaller{}).Pack(messageID, src, headers...)
+	if ctx.Packx.Marshaller.MarshalName() != "protobuf" {
+		buf, e = NewPackx(ProtobufMarshaller{}).Pack(messageID, src, headers...)
 		if e != nil {
 			return errorx.Wrap(e)
 		}
