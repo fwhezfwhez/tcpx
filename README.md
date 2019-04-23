@@ -82,8 +82,7 @@ Here is part of source code:
 ```go
 go func(ctx *Context, tcpx *TcpX) {
         if tcpx.OnMessage != nil {
-            tcpx.Mux.execAllMiddlewares(ctx)
-            tcpx.OnMessage(ctx)
+            ...
         } else {
             messageID, e := tcpx.Packx.MessageIDOf(ctx.Stream)
             if e != nil {
@@ -95,9 +94,7 @@ go func(ctx *Context, tcpx *TcpX) {
                 Logger.Println(fmt.Sprintf("messageID %d handler not found", messageID))
                 return
             }
-
-            tcpx.Mux.execMessageIDMiddlewares(ctx, messageID)
-            handler(ctx)
+            ...
         }
     }(ctx, tcpx)
 ```
