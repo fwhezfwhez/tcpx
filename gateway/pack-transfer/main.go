@@ -33,10 +33,10 @@ package main
 import (
 	"flag"
 	"github.com/fwhezfwhez/errorx"
+	"github.com/fwhezfwhez/tcpx"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/cors"
 	"net/http"
-	"tcpx"
 	"time"
 )
 

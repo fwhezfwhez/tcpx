@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/fwhezfwhez/tcpx"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/cors"
 	"net/http"
-	"tcpx"
 	"tcpx/all-language-clients/model"
 	"time"
 )
@@ -27,7 +27,7 @@ func main() {
 			return
 		}
 		fmt.Println(param.MarshalName)
-		fmt.Println(param.MarshalName=="json")
+		fmt.Println(param.MarshalName == "json")
 		var user interface{}
 		type JSONUser struct {
 			Username string `json:"username"`
