@@ -11,7 +11,7 @@ go_import_path: github.com/fwhezfwhez/tcpx
 before_install:
   - go get github.com/fwhezfwhez/errorx
   - go get github.com/pelletier/go-toml
-  - go get golang.org/x/protobuf/proto
+  - go get github.com/golang/protobuf/proto
   - go get gopkg.in/yaml.v2
 script:
   - go test ./
