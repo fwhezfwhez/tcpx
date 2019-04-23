@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-    <a href="https://godoc.org/github.com/fwhezfwhez/SuperChecker"><img src="http://img.shields.io/badge/godoc-reference-blue.svg?style=flat"></a>
+    <a href="https://godoc.org/github.com/fwhezfwhez/tcpx"><img src="http://img.shields.io/badge/godoc-reference-blue.svg?style=flat"></a>
     <a href="https://www.travis-ci.org/fwhezfwhez/tcpx"><img src="https://www.travis-ci.org/fwhezfwhez/tcpx.svg?branch=master"></a>
     <a href="https://gitter.im/fwhezfwhez-tcpx/community"><img src="https://badges.gitter.im/Join%20Chat.svg"></a>
 </p>
