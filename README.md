@@ -44,6 +44,141 @@ Golang has greate support of tcp protocol in official libraries, but users still
 https://github.com/fwhezfwhez/tcpx/tree/master/examples/sayHello
 
 ## 3. Ussages
+Now tcpx advises two modes handling stream, using OnMessage requires user handling stream by himself
+
+**Using OnMessage**
+```go
+func main(){
+    srv := tcpx.NewTcpX(tcpx.JsonMarshaller{})
+    srv.OnClose = OnClose
+    srv.OnConnect = OnConnect
+    srv.OnMessage = OnMessage
+
+    if e := srv.ListenAndServe("tcp", ":7171"); e != nil {
+        panic(e)
+    }
+}
+
+func OnConnect(c *tcpx.Context) {
+    fmt.Println(fmt.Sprintf("connecting from remote host %s network %s", c.ClientIP(), c.Conn.RemoteAddr().Network()))
+}
+func OnClose(c *tcpx.Context) {
+    fmt.Println(fmt.Sprintf("connecting from remote host %s network %s has stoped", c.Conn.RemoteAddr().String(), c.Conn.RemoteAddr().Network()))
+}
+var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
+func OnMessage(c *tcpx.Context) {
+    // handle c.Stream
+    type ServiceA struct{
+        Username string `json:"username"`
+    }
+    type ServiceB struct{
+        ServiceName string `json:"service_name"`
+    }
+
+    messageID, e :=packx.MessageIDOf(c.Stream)
+    if e!=nil {
+        fmt.Println(errorx.Wrap(e).Error())
+        return
+    }
+
+    switch messageID {
+    case 7:
+        var serviceA ServiceA
+        block,e :=packx.Unpack(c.Stream,&serviceA)
+        fmt.Println(block, e)
+        c.Reply(8, "success")
+    case 9:
+        var serviceB ServiceB
+        block,e :=packx.Unpack(c.Stream, &serviceB)
+        fmt.Println(block, e)
+        c.JSON(10, "success")
+    }
+}
+```
+
+**Using routine mux**
+```go
+func main(){
+    srv := tcpx.NewTcpX(tcpx.JsonMarshaller{})
+    srv.OnClose = OnClose
+    srv.OnConnect = OnConnect
+    // srv.OnMessage = OnMessage
+
+    srv.UseGlobal(MiddlewareGlobal)
+    srv.Use("middleware1", Middleware1, "middleware2", Middleware2)
+    srv.AddHandler(1, SayHello)
+
+    srv.UnUse("middleware2")
+    srv.AddHandler(3, SayGoodBye)
+
+    if e := srv.ListenAndServe("tcp", ":7171"); e != nil {
+        panic(e)
+    }
+}
+
+func OnConnect(c *tcpx.Context) {
+    fmt.Println(fmt.Sprintf("connecting from remote host %s network %s", c.ClientIP(), c.Conn.RemoteAddr().Network()))
+}
+func OnClose(c *tcpx.Context) {
+    fmt.Println(fmt.Sprintf("connecting from remote host %s network %s has stoped", c.Conn.RemoteAddr().String(), c.Conn.RemoteAddr().Network()))
+}
+// func OnMessage(c *tcpx.Context) {
+    // handle c.Stream
+// }
+func SayHello(c *tcpx.Context) {
+    var messageFromClient string
+    var messageInfo tcpx.Message
+    messageInfo, e := c.Bind(&messageFromClient)
+    if e != nil {
+        panic(e)
+    }
+    fmt.Println("receive messageID:", messageInfo.MessageID)
+    fmt.Println("receive header:", messageInfo.Header)
+    fmt.Println("receive body:", messageInfo.Body)
+
+    var responseMessageID int32 = 2
+    e = c.Reply(responseMessageID, "hello")
+    fmt.Println("reply:", "hello")
+    if e != nil {
+        fmt.Println(e.Error())
+    }
+}
+
+func SayGoodBye(c *tcpx.Context) {
+    var messageFromClient string
+    var messageInfo tcpx.Message
+    messageInfo, e := c.Bind(&messageFromClient)
+    if e != nil {
+        panic(e)
+    }
+    fmt.Println("receive messageID:", messageInfo.MessageID)
+    fmt.Println("receive header:", messageInfo.Header)
+    fmt.Println("receive body:", messageInfo.Body)
+
+    var responseMessageID int32 = 4
+    e = c.Reply(responseMessageID, "bye")
+    fmt.Println("reply:", "bye")
+    if e != nil {
+        fmt.Println(e.Error())
+    }
+}
+func Middleware1(c *tcpx.Context) {
+    fmt.Println("I am middleware 1 exampled by 'srv.Use(\"middleware1\", Middleware1)'")
+}
+
+func Middleware2(c *tcpx.Context) {
+    fmt.Println("I am middleware 2 exampled by 'srv.Use(\"middleware2\", Middleware2),srv.UnUse(\"middleware2\")'")
+}
+
+func Middleware3(c *tcpx.Context) {
+    fmt.Println("I am middleware 3 exampled by 'srv.AddHandler(5, Middleware3, SayName)'")
+}
+
+func MiddlewareGlobal(c *tcpx.Context) {
+    fmt.Println("I am global middleware exampled by 'srv.UseGlobal(MiddlewareGlobal)'")
+}
+```
+
 ### 3.1 How to add middlewares?
 Middlewares in tcpx has three types: `GlobalTypeMiddleware`, `MessageIDSelfRelatedTypeMiddleware`,`AnchorTypeMiddleware`.
 `GlobalTypeMiddleware`:

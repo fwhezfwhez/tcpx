@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errorX"
 	"fmt"
 	"github.com/fwhezfwhez/tcpx"
 )
@@ -40,7 +41,35 @@ func OnConnect(c *tcpx.Context) {
 func OnClose(c *tcpx.Context) {
 	fmt.Println(fmt.Sprintf("connecting from remote host %s network %s has stoped", c.Conn.RemoteAddr().String(), c.Conn.RemoteAddr().Network()))
 }
+
+var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
 func onMessage(c *tcpx.Context) {
+	type ServiceA struct{
+		Username string `json:"username"`
+	}
+	type ServiceB struct{
+		ServiceName string `json:"service_name"`
+	}
+
+	messageID, e :=packx.MessageIDOf(c.Stream)
+	if e!=nil {
+		fmt.Println(errorx.Wrap(e).Error())
+		return
+	}
+
+	switch messageID {
+	case 7:
+		var serviceA ServiceA
+	    block,e :=packx.Unpack(c.Stream,&serviceA)
+		fmt.Println(block, e)
+	    c.Reply(8, "success")
+	case 9:
+		var serviceB ServiceB
+	    block,e :=packx.Unpack(c.Stream, &serviceB)
+	    fmt.Println(block, e)
+	    c.JSON(10, "success")
+	}
+
 
 }
 func SayHello(c *tcpx.Context) {

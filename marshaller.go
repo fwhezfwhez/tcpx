@@ -3,6 +3,8 @@ package tcpx
 import (
 	"encoding/json"
 	"encoding/xml"
+	"errors"
+	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/pelletier/go-toml"
 	"gopkg.in/yaml.v2"
@@ -13,6 +15,24 @@ type Marshaller interface {
 	Unmarshal([]byte, interface{}) error
 	MarshalName() string
 }
+
+func GetMarshallerByMarshalName(marshalName string) (Marshaller, error) {
+	switch marshalName {
+	case "json":
+		return JsonMarshaller{}, nil
+	case "xml":
+		return XmlMarshaller{}, nil
+	case "toml", "tml":
+		return TomlMarshaller{}, nil
+	case "yaml", "yml":
+		return YamlMarshaller{}, nil
+	case "protobuf", "proto":
+		return ProtobufMarshaller{}, nil
+	default:
+		return nil, errors.New(fmt.Sprintf("unknown marshalName %s,requires in [json,xml,toml,yaml,protobuf]", marshalName))
+	}
+}
+
 type JsonMarshaller struct{}
 
 func (js JsonMarshaller) Marshal(v interface{}) ([]byte, error) {

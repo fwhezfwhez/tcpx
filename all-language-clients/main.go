@@ -2,11 +2,14 @@
 package main
 
 import (
+	"encoding/json"
 	"encoding/xml"
-	"github.com/fwhezfwhez/tcpx"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/cors"
 	"net/http"
+	"tcpx"
+	"tcpx/all-language-clients/model"
 	"time"
 )
 
@@ -23,6 +26,8 @@ func main() {
 			c.JSON(400, gin.H{"message": e.Error()})
 			return
 		}
+		fmt.Println(param.MarshalName)
+		fmt.Println(param.MarshalName=="json")
 		var user interface{}
 		type JSONUser struct {
 			Username string `json:"username"`
@@ -47,17 +52,17 @@ func main() {
 		case "yaml", "yml":
 			user = &YAMLUser{}
 		case "protobuf", "proto":
-			user = &User{}
+			user = &model.User{}
 		default:
 			c.JSON(400, gin.H{"message": "marshal_name only accept ['json', 'xml', 'toml','yaml','protobuf']"})
 			return
 		}
-		_, e = tcpx.UnpackWithMarshallerName(param.Stream, user, param.MarshalName)
+		message, e := tcpx.UnpackWithMarshallerName(param.Stream, user, param.MarshalName)
 		if e != nil {
 			c.JSON(400, gin.H{"message": e.Error(), "result": "not ok"})
 			return
 		}
-		c.JSON(200, gin.H{"message": "success", "result": "ok"})
+		c.JSON(200, gin.H{"message": "success", "result": "ok", "ms": message})
 	})
 	s := &http.Server{
 		Addr:           ":7000",
@@ -67,4 +72,9 @@ func main() {
 		MaxHeaderBytes: 1 << 21,
 	}
 	s.ListenAndServe()
+}
+
+func Debug(src interface{}) string {
+	buf, _ := json.MarshalIndent(src, "  ", "  ")
+	return string(buf)
 }
