@@ -1,8 +1,8 @@
 package main
 
 import (
-	"errorX"
 	"fmt"
+	"github.com/fwhezfwhez/errorx"
 	"github.com/fwhezfwhez/tcpx"
 )
 
@@ -43,16 +43,17 @@ func OnClose(c *tcpx.Context) {
 }
 
 var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
+
 func onMessage(c *tcpx.Context) {
-	type ServiceA struct{
+	type ServiceA struct {
 		Username string `json:"username"`
 	}
-	type ServiceB struct{
+	type ServiceB struct {
 		ServiceName string `json:"service_name"`
 	}
 
-	messageID, e :=packx.MessageIDOf(c.Stream)
-	if e!=nil {
+	messageID, e := packx.MessageIDOf(c.Stream)
+	if e != nil {
 		fmt.Println(errorx.Wrap(e).Error())
 		return
 	}
@@ -60,16 +61,15 @@ func onMessage(c *tcpx.Context) {
 	switch messageID {
 	case 7:
 		var serviceA ServiceA
-	    block,e :=packx.Unpack(c.Stream,&serviceA)
+		block, e := packx.Unpack(c.Stream, &serviceA)
 		fmt.Println(block, e)
-	    c.Reply(8, "success")
+		c.Reply(8, "success")
 	case 9:
 		var serviceB ServiceB
-	    block,e :=packx.Unpack(c.Stream, &serviceB)
-	    fmt.Println(block, e)
-	    c.JSON(10, "success")
+		block, e := packx.Unpack(c.Stream, &serviceB)
+		fmt.Println(block, e)
+		c.JSON(10, "success")
 	}
-
 
 }
 func SayHello(c *tcpx.Context) {
