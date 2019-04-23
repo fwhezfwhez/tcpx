@@ -6,10 +6,10 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/fwhezfwhez/tcpx"
+	"github.com/fwhezfwhez/tcpx/all-language-clients/model"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/cors"
 	"net/http"
-	"tcpx/all-language-clients/model"
 	"time"
 )
 
