@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
+	"github.com/fwhezfwhez/tcpx"
 	"net"
-	"tcpx"
 )
 
 var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})

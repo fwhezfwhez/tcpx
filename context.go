@@ -1,7 +1,6 @@
 package tcpx
 
 import (
-	"fmt"
 	"github.com/fwhezfwhez/errorx"
 	"net"
 	"strings"
@@ -211,9 +210,7 @@ func (ctx *Context) Abort() {
 // Thus, c.Next() means actually do nothing.
 func (ctx *Context) Next() {
 	ctx.offset ++
-	fmt.Println(ctx.offset)
 	s := len(ctx.handlers)
-	fmt.Println(s)
 	for ; ctx.offset < s; ctx.offset++ {
 		if !ctx.isAbort() {
 			ctx.handlers[ctx.offset](ctx)
