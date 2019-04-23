@@ -198,7 +198,7 @@ ruby:
 ```
 //
 ```
-Welcome to provides all language pack example via pull request, you can valid you result stream via https://www.baidu.com
+Welcome to provides all language pack example via pull request, you can valid you result stream via [updating...](https://www.baidu.com)
 
 ### 3.6 Can user design his own message rule rather than tcpx.Message pack rule?
 It's on developing. future tcpx will support two other pack rule:
