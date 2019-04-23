@@ -239,3 +239,4 @@ func (mux *Mux) execGlobalMiddlewares(ctx *Context) {
 	}
 	ctx.ResetOffset()
 }
+

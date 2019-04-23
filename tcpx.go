@@ -7,7 +7,6 @@ import (
 	"reflect"
 
 	"net"
-	"sync"
 )
 
 // OnMessage and mux are opposite.
@@ -151,12 +150,25 @@ func (tcpx *TcpX) ListenAndServe(network, addr string) error {
 					Logger.Println(e)
 					break
 				}
-				ctx.PerRequestContext = &sync.Map{}
 
-				go func(ctx *Context, tcpx *TcpX) {
+				// Since ctx.handlers and ctx.offset will change per request, cannot take this function as a new routine,
+				// or ctx.offset and ctx.handler will get dirty
+				func(ctx *Context, tcpx *TcpX) {
 					if tcpx.OnMessage != nil {
-						tcpx.Mux.execAllMiddlewares(ctx)
-						tcpx.OnMessage(ctx)
+						// tcpx.Mux.execAllMiddlewares(ctx)
+						//tcpx.OnMessage(ctx)
+						if ctx.handlers == nil {
+							ctx.handlers = make([]func(c *Context), 0, 10)
+						}
+						ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
+						for _, v := range tcpx.Mux.MiddlewareAnchorMap {
+							ctx.handlers = append(ctx.handlers, v.Middleware)
+						}
+						ctx.handlers = append(ctx.handlers, tcpx.OnMessage)
+						if len(ctx.handlers) > 0 {
+							ctx.Next()
+						}
+						ctx.Reset()
 					} else {
 						messageID, e := tcpx.Packx.MessageIDOf(ctx.Stream)
 						if e != nil {
@@ -170,7 +182,30 @@ func (tcpx *TcpX) ListenAndServe(network, addr string) error {
 						}
 
 						tcpx.Mux.execMessageIDMiddlewares(ctx, messageID)
-						handler(ctx)
+						//handler(ctx)
+
+						if ctx.handlers == nil {
+							ctx.handlers = make([]func(c *Context), 0, 10)
+						}
+
+						// global middleware
+						ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
+						// anchor middleware
+						messagIDAnchorIndex := tcpx.Mux.AnchorIndexOfMessageID(messageID)
+						for _, v := range tcpx.Mux.MiddlewareAnchorMap {
+							if messagIDAnchorIndex > v.AnchorIndex && messagIDAnchorIndex <= v.ExpireAnchorIndex{
+								ctx.handlers = append(ctx.handlers, v.Middleware)
+							}
+						}
+						// self-related middleware
+						ctx.handlers = append(ctx.handlers, tcpx.Mux.MessageIDSelfMiddleware[messageID]...)
+						// handler
+						ctx.handlers = append(ctx.handlers, handler)
+
+						if len(ctx.handlers) > 0 {
+							ctx.Next()
+						}
+						ctx.Reset()
 					}
 				}(ctx, tcpx)
 				continue

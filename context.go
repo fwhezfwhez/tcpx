@@ -1,6 +1,7 @@
 package tcpx
 
 import (
+	"fmt"
 	"github.com/fwhezfwhez/errorx"
 	"net"
 	"strings"
@@ -10,6 +11,7 @@ import (
 const (
 	ABORT = 2019
 )
+
 // Context has two concurrently safe context:
 // PerConnectionContext is used for connection, once the connection is built ,this is connection scope.
 // PerRequestContext is used for request, when connection was built, then many requests can be sent between client and server.
@@ -27,7 +29,8 @@ type Context struct {
 	// used to control middleware abort or next
 	// offset == ABORT, abort
 	// else next
-	offset int
+	offset   int
+	handlers []func(*Context)
 }
 
 func NewContext(conn net.Conn, marshaller Marshaller) *Context {
@@ -36,7 +39,8 @@ func NewContext(conn net.Conn, marshaller Marshaller) *Context {
 		PerConnectionContext: &sync.Map{},
 		PerRequestContext:    &sync.Map{},
 
-		Packx: NewPackx(marshaller),
+		Packx:  NewPackx(marshaller),
+		offset: -1,
 	}
 }
 func (ctx *Context) Bind(dest interface{}) (Message, error) {
@@ -205,10 +209,35 @@ func (ctx *Context) Abort() {
 // Since middlewares are divided into 3 kinds: global, messageIDSelfRelated, anchorType,
 // offset can't be used straightly to control middlewares like  middlewares[offset]().
 // Thus, c.Next() means actually do nothing.
-func (ctx *Context) Next(){
+func (ctx *Context) Next() {
 	ctx.offset ++
+	fmt.Println(ctx.offset)
+	s := len(ctx.handlers)
+	fmt.Println(s)
+	for ; ctx.offset < s; ctx.offset++ {
+		if !ctx.isAbort() {
+			ctx.handlers[ctx.offset](ctx)
+		} else{
+			return
+		}
+	}
 }
-func (ctx *Context) ResetOffset(){
-	ctx.offset = 0
+func (ctx *Context) ResetOffset() {
+	ctx.offset = -1
 }
 
+func (ctx *Context) Reset() {
+	ctx.PerRequestContext = &sync.Map{}
+	ctx.offset = -1
+	if ctx.handlers == nil {
+		ctx.handlers = make([]func(*Context), 0, 10)
+		return
+	}
+	ctx.handlers = ctx.handlers[:0]
+}
+func (ctx *Context) isAbort() bool{
+	if ctx.offset >= ABORT {
+		return true
+	}
+	return false
+}

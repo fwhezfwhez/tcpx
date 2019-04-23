@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/fwhezfwhez/tcpx"
+	"tcpx"
 )
 
 func main() {
@@ -102,7 +102,6 @@ func SayName(c *tcpx.Context) {
 
 func Middleware1(c *tcpx.Context) {
 	fmt.Println("I am middleware 1 exampled by 'srv.Use(\"middleware1\", Middleware1)'")
-	c.Abort()
 }
 
 func Middleware2(c *tcpx.Context) {
