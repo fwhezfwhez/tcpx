@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	srv := tcpx.NewTcpX(tcpx.TomlMarshaller{})
+	srv := tcpx.NewTcpX(tcpx.JsonMarshaller{})
 
 	// If mode is DEBUG, error in framework will log with error spot and time in detail
 	// tcpx.SetLogMode(tcpx.DEBUG)
