@@ -30,7 +30,31 @@ func main() {
 			fmt.Println("服务端消息:", receivedString)
 		}
 	}()
-	buf, e := packx.Pack(5, "hello,I am client xiao ming", map[string]interface{}{
+
+	var buf []byte
+	var e error
+	//buf, e = packx.Pack(5, "hello,I am client xiao ming", map[string]interface{}{
+	//	"api": "/tcpx/client1/",
+	//})
+	//if e != nil {
+	//	panic(e)
+	//}
+	//conn.Write(buf)
+
+	//buf, e = packx.Pack(7, struct {
+	//	Username string `json:"username"`
+	//}{"FT"}, map[string]interface{}{
+	//	"api": "/tcpx/client1/",
+	//})
+	//if e != nil {
+	//	panic(e)
+	//}
+	//
+	//conn.Write(buf)
+
+	buf, e = packx.Pack(9, struct {
+		ServiceName string `json:"service_name"`
+	}{"FT"}, map[string]interface{}{
 		"api": "/tcpx/client1/",
 	})
 
@@ -38,6 +62,8 @@ func main() {
 		panic(e)
 	}
 	conn.Write(buf)
+
+
 	select {}
 }
 

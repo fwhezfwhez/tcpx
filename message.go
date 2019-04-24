@@ -1,10 +1,9 @@
 package tcpx
 
-
 type Message struct {
-	MessageID int32
-	Header    map[string]interface{}
-	Body      interface{}
+	MessageID int32                  `json:"message_id"`
+	Header    map[string]interface{} `json:"header"`
+	Body      interface{}            `json:"body"`
 }
 
 // Get value of message's header whose key is 'key'
@@ -26,4 +25,3 @@ func (msg *Message) Set(k string, v interface{}) {
 		msg.Header[k] = v
 	}
 }
-

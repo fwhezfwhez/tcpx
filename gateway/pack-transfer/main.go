@@ -28,6 +28,22 @@
 //   <stream> | []byte... | []byte | yes|
 //   <message_id> | 1,2,3,4…… | int32 | yes|
 //   <header>   | {key:value, key2:value2}| map[string]interface{} | no|
+
+// returns:
+// {
+//      "message": "success",
+//      "stream" : "...",
+//      "message_info":{"MessageID":1,"Header":null,"Body":{"username":"tcpx"}}
+// }
+// message string
+// stream []byte
+// message_info tcpx.Message:
+// type Message struct {
+//	MessageID int32                  `json:"message_id"`
+//	Header    map[string]interface{} `json:"header"`
+//	Body      interface{}            `json:"body"`
+//}
+//
 package main
 
 import (

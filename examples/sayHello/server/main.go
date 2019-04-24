@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	srv := tcpx.NewTcpX(tcpx.JsonMarshaller{})
+	srv := tcpx.NewTcpX(tcpx.TomlMarshaller{})
 
 	// If mode is DEBUG, error in framework will log with error spot and time in detail
 	// tcpx.SetLogMode(tcpx.DEBUG)
@@ -16,10 +16,11 @@ func main() {
 	srv.OnConnect = OnConnect
 
 	// Mux routine and OnMessage callback can't meet .
+	// When OnMessage is not nil, routes will lose effect.
 	// When srv.OnMessage has set, srv.AddHandler() makes no sense, it means user wants to handle raw message stream by self.
 	// Besides, if OnMessage is not nil, middlewares of global type(by srv.UseGlobal) and anchor type(by srv.Use, srv.UnUse)
 	// will all be executed regardless of an anchor type middleware being unUsed or not.
-	// srv.OnMessage = OnMessage
+	srv.OnMessage = OnMessage
 
 	srv.UseGlobal(MiddlewareGlobal)
 	srv.Use("middleware1", Middleware1, "middleware2", Middleware2)
@@ -44,12 +45,12 @@ func OnClose(c *tcpx.Context) {
 
 var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
 
-func onMessage(c *tcpx.Context) {
+func OnMessage(c *tcpx.Context) {
 	type ServiceA struct {
 		Username string `json:"username"`
 	}
 	type ServiceB struct {
-		ServiceName string `json:"service_name"`
+		ServiceName string `json:"service_name" toml:"service_name" yaml:"service_name"`
 	}
 
 	messageID, e := packx.MessageIDOf(c.Stream)
@@ -61,12 +62,14 @@ func onMessage(c *tcpx.Context) {
 	switch messageID {
 	case 7:
 		var serviceA ServiceA
-		block, e := packx.Unpack(c.Stream, &serviceA)
+		// block, e := packx.Unpack(c.Stream, &serviceA)
+		block, e :=c.Bind(&serviceA)
 		fmt.Println(block, e)
 		c.Reply(8, "success")
 	case 9:
 		var serviceB ServiceB
-		block, e := packx.Unpack(c.Stream, &serviceB)
+		//block, e := packx.Unpack(c.Stream, &serviceB)
+		block, e :=c.Bind(&serviceB)
 		fmt.Println(block, e)
 		c.JSON(10, "success")
 	}

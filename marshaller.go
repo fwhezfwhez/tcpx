@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/fwhezfwhez/errorx"
 	"github.com/golang/protobuf/proto"
 	"github.com/pelletier/go-toml"
 	"gopkg.in/yaml.v2"
@@ -87,13 +88,22 @@ func (tm TomlMarshaller) MarshalName() string {
 
 type ProtobufMarshaller struct{}
 
+// v should realize proto.Message
 func (pm ProtobufMarshaller) Marshal(v interface{}) ([]byte, error) {
-	return proto.Marshal(v.(proto.Message))
+	src, ok := v.(proto.Message)
+	if !ok {
+		return nil, errorx.NewFromString("protobuf marshaller requires src realize proto.Message")
+	}
+	return proto.Marshal(src)
 }
 
 // dest should realize proto.Message
 func (pm ProtobufMarshaller) Unmarshal(data []byte, dest interface{}) error {
-	return json.Unmarshal(data, dest)
+	dst, ok := dest.(proto.Message)
+	if !ok {
+		return errorx.NewFromString("protobuf marshaller requires src realize proto.Message")
+	}
+	return proto.Unmarshal(data, dst)
 }
 
 func (pm ProtobufMarshaller) MarshalName() string {
