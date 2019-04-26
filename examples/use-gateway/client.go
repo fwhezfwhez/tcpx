@@ -6,12 +6,12 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/fwhezfwhez/tcpx"
+	"github.com/fwhezfwhez/tcpx/examples/use-gateway/pb"
 	"github.com/golang/protobuf/proto"
 	"github.com/pelletier/go-toml"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net/http"
-	"tcpx/examples/use-gateway/pb"
 )
 
 // This example shows how to generate expected tcpx stream using official gateway.
