@@ -14,6 +14,7 @@
 // mac: `./pack-transfer-mac-64`
 //
 // 2. send transfer request
+// pack:
 //	 url: POST http://localhost:7000/gateway/pack/transfer/
 //	 content-type: application/json
 //	 body:
@@ -28,22 +29,35 @@
 //   <stream> | []byte... | []byte | yes|
 //   <message_id> | 1,2,3,4…… | int32 | yes|
 //   <header>   | {key:value, key2:value2}| map[string]interface{} | no|
-
-// returns:
+//   returns:
+//       {
+//           "message": "success",
+//           "stream": <stream>
+//       }
+//   stream []byte, packed stream
+//
+//
+// unpack:
+//	 url: POST http://localhost:7000/gateway/unpack/transfer/
+//	 content-type: application/json
+//	 body:
+//		 {
+//		    "marshal_name":<marshal_name>,
+//          "stream": <marshaled_stream>,
+//		 }
+//   | arg_name | value range| type | necessary|
+//   <marshal_name> | json,xml,protobuf,toml,yaml | string | yes|
+//   <stream> | []byte... | []byte | yes|
+//
+//   returns:
 // {
 //      "message": "success",
-//      "stream" : "...",
-//      "message_info":{"MessageID":1,"Header":null,"Body":{"username":"tcpx"}}
+//      "blocks":[{"message_id":1, "header":{k:v,k2,:v2}, "marshal_name":<marshal_name>, "stream":<stream>},{},{}]
 // }
-// message string
-// stream []byte
-// message_info tcpx.Message:
-// type Message struct {
-//	MessageID int32                  `json:"message_id"`
-//	Header    map[string]interface{} `json:"header"`
-//	Body      interface{}            `json:"body"`
-//}
-//
+// message_id int32
+// header map[string]interface{}
+// stream []byte, not unMarshaled yet
+// marshal_name string
 package main
 
 import (
@@ -118,7 +132,7 @@ func main() {
 			MessageID   int32                  `json:"message_id"`
 			Header      map[string]interface{} `json:"header"`
 			MarshalName string                 `json:"marshal_name"`
-			Stream      []byte                 `json:"body"`
+			Stream      []byte                 `json:"stream"`
 		}
 		var results = make([]Result, 0, 10)
 
@@ -134,8 +148,16 @@ func main() {
 				return
 			}
 			result.MarshalName = packx.Marshaller.MarshalName()
-			result.Header = packx.HeaderOf(block)
-			result.Stream = packx.BodyBytesOf(block)
+			result.Header, e = packx.HeaderOf(block)
+			if e != nil {
+				c.JSON(500, gin.H{"message": errorx.Wrap(e)})
+				return
+			}
+			result.Stream, e = packx.BodyBytesOf(block)
+			if e != nil {
+				c.JSON(500, gin.H{"message": errorx.Wrap(e)})
+				return
+			}
 			results = append(results, result)
 		}
 
