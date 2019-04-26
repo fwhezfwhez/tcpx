@@ -19,8 +19,8 @@ application/json
 body:
 ```json
 {
-	"marshal_name":<marshal_name>,
-	"stream": <stream>,
+    "marshal_name":<marshal_name>,
+    "stream": <stream>,
     "message_id": <message_id>,
     "header": <header>
 }
@@ -31,23 +31,27 @@ body:
 | stream | []byte | stream should be well marshalled by one of marshal_name | | yes|
 |message_id | int32 | int32 type messageID| 1 | yes|
 | header | map/object | key-value pairs | {"k1":"v1"}| no|
+
 returns:
 ```json
 {
     "message":<message>,
-	"stream":<stream>
+    "stream":<stream>
 }
 ```
+
 | field | type | desc | example | nessessary
 |---|---|--|--|--|
 | message | string |"success" when status 200, "success", "error message" when 400/500 | "success"|yes|
 | stream | []byte | packed stream,when error or status not 200, no stream field | | no|
 
 example request:
+
 payload:
 ```go
 {"username": "hello, tcpx"}   ---json-->  "eyJ1c2VybmFtZSI6ImhlbGxvLCB0Y3B4In0="
 ```
+request:
 ```json
 {
     "marshal_name": "json",
@@ -58,25 +62,31 @@ payload:
     }
 }
 ```
+
 example response:
 ```json
 {
     "stream": "AAAANgAAAAEAAAAQAAAAGnsiYXBpIjoiL3BhY2svIn17InVzZXJuYW1lIjoiaGVsbG8sIHRjcHgifQ=="
 }
 ```
+
 #### Gateway unpack detail
+
 **note: able to unpack many messages once.**
+
 ```url
 POST http://localhost:7000/gateway/unpack/transfer/
 application/json
 ```
+
 body:
 ```json
 {
     "marshal_name": <marshal_name>,
-	"stream": <stream>
+    "stream": <stream>
 }
 ```
+
 | field | type | desc | example | nessessary
 |---|---|--|--|--|
 | marshal_name | string |ranges in `"json","xml", "toml", "yaml", "protobuf"`| "json"|yes|
@@ -86,7 +96,7 @@ returns:
 ```json
 {
     "message": <message>,
-	"blocks" <blocks>
+    "blocks" <blocks>
 }
 ```
 | field | type | desc | example | nessessary
@@ -94,15 +104,17 @@ returns:
 | message | string |"success" when status 200, "success", "error message" when 400/500 | "success"|yes|
 | blocks | []block | unpacked blocks, when status not 200, no this field| | no|
 |block| obj | each message block information, when status not 200,no this field | ++ look below++ | no|
+
 block example:
 ```json
 {
     "message_id": 1,
-	"header": {"k1":"v1"},
-	"marshal_name": "json",
-	"stream": "eyJ1c2VybmFtZSI6ImhlbGxvLCB0Y3B4In0="
+    "header": {"k1":"v1"},
+    "marshal_name": "json",
+    "stream": "eyJ1c2VybmFtZSI6ImhlbGxvLCB0Y3B4In0="
 }
 ```
+
 example request:
 ```json
 {
@@ -110,6 +122,7 @@ example request:
     "stream": "AAAANgAAAAEAAAAQAAAAGnsiYXBpIjoiL3BhY2svIn17InVzZXJuYW1lIjoiaGVsbG8sIHRjcHgifQ=="
 }
 ```
+
 example response:
 ```json
 {
