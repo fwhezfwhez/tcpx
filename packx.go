@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/fwhezfwhez/errorx"
 	"io"
 	"reflect"
 	"strconv"
@@ -116,6 +117,50 @@ func (packx Packx) BodyLengthOf(stream []byte) (int32, error) {
 	return int32(bodyLength), nil
 }
 
+// Header bytes of a block
+func (packx Packx) HeaderBytesOf(stream []byte) ([]byte, error) {
+	headerLen, e := packx.HeaderLengthOf(stream)
+	if e != nil {
+		return nil, e
+	}
+	if len(stream) < 16+int(headerLen) {
+		return nil, errors.New(fmt.Sprintf("stream lenth should be bigger than %d", 16+int(headerLen)))
+	}
+	header := stream[16 : 16+headerLen]
+	return header, nil
+}
+
+// header of a block
+func (packx Packx) HeaderOf(stream []byte) (map[string]interface{}, error) {
+	var header map[string]interface{}
+	headerBytes, e := packx.HeaderBytesOf(stream)
+	if e != nil {
+		return nil, errorx.Wrap(e)
+	}
+	e = json.Unmarshal(headerBytes, &header)
+	if e != nil {
+		return nil, errorx.Wrap(e)
+	}
+	return header, nil
+}
+
+// body bytes of a block
+func (packx Packx) BodyBytesOf(stream []byte) ([]byte, error) {
+	headerLen, e := packx.HeaderLengthOf(stream)
+	if e != nil {
+		return nil, e
+	}
+	bodyLen, e := packx.BodyLengthOf(stream)
+	if e != nil {
+		return nil, e
+	}
+	if len(stream) < 16+int(headerLen)+int(bodyLen) {
+		return nil, errors.New(fmt.Sprintf("stream lenth should be bigger than %d", 16+int(headerLen)+int(bodyLen)))
+	}
+	body := stream[16+headerLen : 16+headerLen+bodyLen]
+	return body, nil
+}
+
 // PackWithMarshaller will encode message into blocks of length,messageID,headerLength,header,bodyLength,body.
 // Users don't need to know how pack serializes itself if users use UnpackPWithMarshaller.
 //
@@ -215,10 +260,13 @@ func UnpackWithMarshaller(stream []byte, dest interface{}, marshaller Marshaller
 		return Message{}, e
 	}
 	// body
-	e = marshaller.Unmarshal(stream[16+headerLength:(16 + headerLength + bodyLength)], dest)
-	if e != nil {
-		return Message{}, e
+	if dest != nil {
+		e = marshaller.Unmarshal(stream[16+headerLength:(16 + headerLength + bodyLength)], dest)
+		if e != nil {
+			return Message{}, e
+		}
 	}
+
 	return Message{
 		MessageID: int32(messageID),
 		Header:    header,

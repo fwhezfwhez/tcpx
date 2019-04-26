@@ -200,9 +200,9 @@ func (tcpx *TcpX) ListenAndServe(network, addr string) error {
 						// global middleware
 						ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
 						// anchor middleware
-						messagIDAnchorIndex := tcpx.Mux.AnchorIndexOfMessageID(messageID)
+						messageIDAnchorIndex := tcpx.Mux.AnchorIndexOfMessageID(messageID)
 						for _, v := range tcpx.Mux.MiddlewareAnchorMap {
-							if messagIDAnchorIndex > v.AnchorIndex && messagIDAnchorIndex <= v.ExpireAnchorIndex{
+							if messageIDAnchorIndex > v.AnchorIndex && messageIDAnchorIndex <= v.ExpireAnchorIndex{
 								ctx.handlers = append(ctx.handlers, v.Middleware)
 							}
 						}

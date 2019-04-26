@@ -47,11 +47,14 @@
 package main
 
 import (
+	"bytes"
 	"flag"
+	"fmt"
 	"github.com/fwhezfwhez/errorx"
 	"github.com/fwhezfwhez/tcpx"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/cors"
+	"io"
 	"net/http"
 	"time"
 )
@@ -64,6 +67,8 @@ func init() {
 }
 func main() {
 	r := gin.Default()
+
+	// 发送包按照每条消息
 	r.POST("/gateway/pack/transfer/", func(c *gin.Context) {
 		type Param struct {
 			MarshalName string                 `json:"marshal_name" binding:"required"`
@@ -76,7 +81,9 @@ func main() {
 			c.JSON(400, gin.H{"message": errorx.Wrap(e).Error()})
 			return
 		}
+		fmt.Println(param.Stream)
 		marshaller, e := tcpx.GetMarshallerByMarshalName(param.MarshalName)
+		fmt.Println(marshaller.MarshalName())
 		if e != nil {
 			c.JSON(400, gin.H{"message": errorx.Wrap(e).Error()})
 			return
@@ -87,14 +94,52 @@ func main() {
 			c.JSON(400, gin.H{"message": errorx.Wrap(e).Error()})
 			return
 		}
-		// valid whether correct
-		var m interface{}
-		messageInfo, e := packx.Unpack(buf, &m)
+
+		c.JSON(200, gin.H{"message": "success", "stream": buf})
+	})
+
+	// 接受包会自动分块
+	r.POST("/gateway/unpack/transfer/", func(c *gin.Context) {
+		type Param struct {
+			MarshalName string `json:"marshal_name"`
+			Stream      []byte `json:"stream"`
+		}
+		var param Param
+		c.Bind(&param)
+		var reader = bytes.NewReader(param.Stream)
+		marshaller, e := tcpx.GetMarshallerByMarshalName(param.MarshalName)
 		if e != nil {
-			c.JSON(500, gin.H{"message": errorx.Wrap(e).Error()})
+			c.JSON(400, gin.H{"message": e.Error()})
 			return
 		}
-		c.JSON(200, gin.H{"message": "success", "stream": buf, "message_info": messageInfo})
+		packx := tcpx.NewPackx(marshaller)
+
+		type Result struct {
+			MessageID   int32                  `json:"message_id"`
+			Header      map[string]interface{} `json:"header"`
+			MarshalName string                 `json:"marshal_name"`
+			Stream      []byte                 `json:"body"`
+		}
+		var results = make([]Result, 0, 10)
+
+		for {
+			block, e := packx.FirstBlockOf(reader)
+			if e == io.EOF {
+				break
+			}
+			var result Result
+			result.MessageID, e = packx.MessageIDOf(block)
+			if e != nil {
+				c.JSON(500, gin.H{"message": errorx.Wrap(e)})
+				return
+			}
+			result.MarshalName = packx.Marshaller.MarshalName()
+			result.Header = packx.HeaderOf(block)
+			result.Stream = packx.BodyBytesOf(block)
+			results = append(results, result)
+		}
+
+		c.JSON(200, gin.H{"message": "success", "blocks": results})
 	})
 
 	s := &http.Server{

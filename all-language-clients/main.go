@@ -4,7 +4,6 @@ package main
 import (
 	"encoding/json"
 	"encoding/xml"
-	"fmt"
 	"github.com/fwhezfwhez/tcpx"
 	"github.com/fwhezfwhez/tcpx/all-language-clients/model"
 	"github.com/gin-gonic/gin"
@@ -26,8 +25,6 @@ func main() {
 			c.JSON(400, gin.H{"message": e.Error()})
 			return
 		}
-		fmt.Println(param.MarshalName)
-		fmt.Println(param.MarshalName == "json")
 		var user interface{}
 		type JSONUser struct {
 			Username string `json:"username"`
