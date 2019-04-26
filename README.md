@@ -430,6 +430,7 @@ var message tcpx.Message
 ## 5. Cross-language gateway
 gateway repo:
 https://github.com/fwhezfwhez/tcpx/tree/master/gateway/pack-transfer
+
 example:
 https://github.com/fwhezfwhez/tcpx/tree/master/examples/use-gateway
 
@@ -456,6 +457,7 @@ body:
 | stream | []byte | stream should be well marshalled by one of marshal_name | | yes|
 |message_id | int32 | int32 type messageID| 1 | yes|
 | header | map/object | key-value pairs | {"k1":"v1"}| no|
+
 returns:
 ```json
 {
@@ -519,6 +521,7 @@ returns:
 | message | string |"success" when status 200, "success", "error message" when 400/500 | "success"|yes|
 | blocks | []block | unpacked blocks, when status not 200, no this field| | no|
 |block| obj | each message block information, when status not 200,no this field | ++ look below++ | no|
+
 block example:
 ```json
 {
