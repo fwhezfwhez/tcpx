@@ -21,17 +21,17 @@ func main() {
 	//// valid
 	ExampleJSON()
 
+	////// valid
+	//ExampleXML()
+	//
 	//// valid
-	ExampleXML()
-
-	// valid
-	ExampleTOML()
-
-	//// valid
-	ExampleYAML()
-
-	//// valid
-	ExampleProtobuf()
+	//ExampleTOML()
+	//
+	////// valid
+	//ExampleYAML()
+	//
+	////// valid
+	//ExampleProtobuf()
 }
 
 func ExampleJSON() {
@@ -58,6 +58,8 @@ func ExampleJSON() {
 		MessageID:   1,
 		Header:      map[string]interface{}{"api": "/pack/"},
 	}
+	fmt.Println("pack request:")
+	fmt.Println(tcpx.Debug(packRequest))
 	reqBuf, e := json.Marshal(packRequest)
 	if e != nil {
 		panic(e)
@@ -78,6 +80,8 @@ func ExampleJSON() {
 	}
 	var packResult PackResult
 	e = json.Unmarshal(rsBuf, &packResult)
+	fmt.Println("pack response:")
+	fmt.Println(tcpx.Debug(packResult))
 	if e != nil {
 		panic(e)
 	}
@@ -98,6 +102,8 @@ func ExampleJSON() {
 	if e != nil {
 		panic(e)
 	}
+	fmt.Println("unpack reuest:")
+	fmt.Println(tcpx.Debug(unPackRequest))
 	rsp, e = http.Post("http://localhost:7000/gateway/unpack/transfer/", "application/json", bytes.NewReader(reqBuf))
 	if e != nil {
 		panic(e)
@@ -124,7 +130,7 @@ func ExampleJSON() {
 	if e != nil {
 		panic(e)
 	}
-	fmt.Println("unpack from gateway:")
+	fmt.Println("unpack response:")
 	fmt.Println(tcpx.Debug(response))
 
 	// we took {"username":"hello, tcpx"} for example, so response.Blocks length =1

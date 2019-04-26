@@ -14,23 +14,25 @@ a very convenient tcp framework in golang.
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [tcpx](#tcpx)
-  - [Why designing tcp framwork rather than the official?](#why-designing-tcp-framwork-rather-than-the-official)
-  - [1. Start](#1-start)
-  - [2. Example](#2-example)
-  - [3. Ussages](#3-ussages)
-    - [3.1 How to add middlewares?](#31-how-to-add-middlewares)
-    - [3.2 When to use OnMessage callback?](#32-when-to-use-onmessage-callback)
-    - [3.3 How to design a message?](#33-how-to-design-a-message)
-    - [3.4 How to specific marshal type?](#34-how-to-specific-marshal-type)
-    - [3.5 How client (not only golang) builds expected stream?](#35-how-client-not-only-golang-builds-expected-stream)
-    - [3.6 Can user design his own message rule rather than tcpx.Message pack rule?](#36-can-user-design-his-own-message-rule-rather-than-tcpxmessage-pack-rule)
-    - [3.7 How to separate handlers?](#37-how-to-separate-handlers)
-  - [4. Frequently used methods](#4-frequently-used-methods)
-    - [4.1 `tcpx.TcpX`](#41-tcpxtcpx)
-    - [4.2 `tcpx.Context`](#42-tcpxcontext)
-    - [4.3 `tcpx.Packx`](#43-tcpxpackx)
-    - [4.4 `tcpx.Message`](#44-tcpxmessage)
+- [Why designing tcp framwork rather than the official?](#why-designing-tcp-framwork-rather-than-the-official)
+- [1. Start](#1-start)
+- [2. Example](#2-example)
+- [3. Ussages](#3-ussages)
+  - [3.1 How to add middlewares?](#31-how-to-add-middlewares)
+  - [3.2 When to use OnMessage callback?](#32-when-to-use-onmessage-callback)
+  - [3.3 How to design a message?](#33-how-to-design-a-message)
+  - [3.4 How to specific marshal type?](#34-how-to-specific-marshal-type)
+  - [3.5 How client (not only golang) builds expected stream?](#35-how-client-not-only-golang-builds-expected-stream)
+  - [3.6 Can user design his own message rule rather than tcpx.Message pack rule?](#36-can-user-design-his-own-message-rule-rather-than-tcpxmessage-pack-rule)
+  - [3.7 How to separate handlers?](#37-how-to-separate-handlers)
+- [4. Frequently used methods](#4-frequently-used-methods)
+  - [4.1 `tcpx.TcpX`](#41-tcpxtcpx)
+  - [4.2 `tcpx.Context`](#42-tcpxcontext)
+  - [4.3 `tcpx.Packx`](#43-tcpxpackx)
+  - [4.4 `tcpx.Message`](#44-tcpxmessage)
+- [5. Cross-language gateway](#5-cross-language-gateway)
+    - [5.1 Gateway pack detail](#51-gateway-pack-detail)
+    - [5.2 Gateway unpack detail](#52-gateway-unpack-detail)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -305,7 +307,9 @@ srv := tcpx.NewTcpX(tcpx.OtherMarshaller{})
 ```
 
 ### 3.5 How client (not only golang) builds expected stream?
-Tcpx now only provide `packx` realized in golang to build a client sender.If you wants to send message from other language client, you should be aware of messageID block system.
+Tcpx now only provide `packx` realized in golang to build a client sender.If you wants to send message from other language client, you'll have two ways:
+1. Be aware of messageID block system and build expected stream in specific language.
+2. Using http gateway,refers to **[5. cross-language gateway](#5-cross-language-gateway)**
 
 `messageID block system`:
 ```text
@@ -330,7 +334,7 @@ ruby:
 ```
 //
 ```
-Welcome to provides all language pack example via pull request, you can valid you result stream via [updating...](https://www.baidu.com)
+Welcome to provides all language pack example via pull request, you can valid you result stream refers to unpack http gateway **[5. cross-language gateway](#5-cross-language-gateway)**，
 
 ### 3.6 Can user design his own message rule rather than tcpx.Message pack rule?
 It's on developing. future tcpx will support two other pack rule:
@@ -422,3 +426,128 @@ var message tcpx.Message
 |---|---|
 | message.Get()| get header value by key |
 | message.Set() | set header value |
+
+## 5. Cross-language gateway
+gateway repo:
+https://github.com/fwhezfwhez/tcpx/tree/master/gateway/pack-transfer
+example:
+https://github.com/fwhezfwhez/tcpx/tree/master/examples/use-gateway
+
+`go run main.go -port 7000`  run the gateway locally in port 7000 or else.
+
+#### 5.1 Gateway pack detail
+**note: Each message should call once**
+```url
+POST http://localhost:7000/gateway/pack/transfer/
+application/json
+```
+body:
+```json
+{
+	"marshal_name":<marshal_name>,
+	"stream": <stream>,
+    "message_id": <message_id>,
+    "header": <header>
+}
+```
+| field | type | desc | example | nessessary
+|---|---|--|--|--|
+| marshal_name | string |ranges in `"json","xml", "toml", "yaml", "protobuf"`| "json"|yes|
+| stream | []byte | stream should be well marshalled by one of marshal_name | | yes|
+|message_id | int32 | int32 type messageID| 1 | yes|
+| header | map/object | key-value pairs | {"k1":"v1"}| no|
+returns:
+```json
+{
+    "message":<message>,
+	"stream":<stream>
+}
+```
+| field | type | desc | example | nessessary
+|---|---|--|--|--|
+| message | string |"success" when status 200, "success", "error message" when 400/500 | "success"|yes|
+| stream | []byte | packed stream,when error or status not 200, no stream field | | no|
+
+example request:
+payload:
+```go
+{"username": "hello, tcpx"}   ---json-->  "eyJ1c2VybmFtZSI6ImhlbGxvLCB0Y3B4In0="
+```
+```json
+{
+    "marshal_name": "json",
+    "stream": "eyJ1c2VybmFtZSI6ImhlbGxvLCB0Y3B4In0=",
+    "message_id": 1,
+    "header": {
+      "api": "/pack/"
+    }
+}
+```
+example response:
+```json
+{
+    "stream": "AAAANgAAAAEAAAAQAAAAGnsiYXBpIjoiL3BhY2svIn17InVzZXJuYW1lIjoiaGVsbG8sIHRjcHgifQ=="
+}
+```
+#### 5.2 Gateway unpack detail
+**note: able to unpack many messages once.**
+```url
+POST http://localhost:7000/gateway/unpack/transfer/
+application/json
+```
+body:
+```json
+{
+    "marshal_name": <marshal_name>,
+	"stream": <stream>
+}
+```
+| field | type | desc | example | nessessary
+|---|---|--|--|--|
+| marshal_name | string |ranges in `"json","xml", "toml", "yaml", "protobuf"`| "json"|yes|
+| stream | []byte | packed stream| | no|
+
+returns:
+```json
+{
+    "message": <message>,
+	"blocks" <blocks>
+}
+```
+| field | type | desc | example | nessessary
+|---|---|--|--|--|
+| message | string |"success" when status 200, "success", "error message" when 400/500 | "success"|yes|
+| blocks | []block | unpacked blocks, when status not 200, no this field| | no|
+|block| obj | each message block information, when status not 200,no this field | ++ look below++ | no|
+block example:
+```json
+{
+    "message_id": 1,
+	"header": {"k1":"v1"},
+	"marshal_name": "json",
+	"stream": "eyJ1c2VybmFtZSI6ImhlbGxvLCB0Y3B4In0="
+}
+```
+example request:
+```json
+{
+    "marshal_name": "json",
+    "stream": "AAAANgAAAAEAAAAQAAAAGnsiYXBpIjoiL3BhY2svIn17InVzZXJuYW1lIjoiaGVsbG8sIHRjcHgifQ=="
+}
+```
+example response:
+```json
+{
+    "message": "success",
+    "blocks": [
+      {
+        "message_id": 1,
+        "header": {
+          "api": "/pack/"
+        },
+        "marshal_name": "json",
+        "stream": "eyJ1c2VybmFtZSI6ImhlbGxvLCB0Y3B4In0="
+      }
+    ]
+}
+```
