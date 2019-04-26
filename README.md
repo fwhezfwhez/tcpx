@@ -470,11 +470,14 @@ returns:
 | message | string |"success" when status 200, "success", "error message" when 400/500 | "success"|yes|
 | stream | []byte | packed stream,when error or status not 200, no stream field | | no|
 
-example request:
+example:
+
 payload:
 ```go
 {"username": "hello, tcpx"}   ---json-->  "eyJ1c2VybmFtZSI6ImhlbGxvLCB0Y3B4In0="
 ```
+
+request:
 ```json
 {
     "marshal_name": "json",
@@ -485,6 +488,7 @@ payload:
     }
 }
 ```
+
 example response:
 ```json
 {
@@ -553,4 +557,9 @@ example response:
       }
     ]
 }
+```
+
+to payload:
+```go
+"eyJ1c2VybmFtZSI6ImhlbGxvLCB0Y3B4In0="   ---json-->  {"username": "hello, tcpx"}
 ```
