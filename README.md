@@ -84,14 +84,17 @@ func OnMessage(c *tcpx.Context) {
     }
 
     switch messageID {
+    switch messageID {
     case 7:
         var serviceA ServiceA
-        block,e :=packx.Unpack(c.Stream,&serviceA)
+        // block, e := packx.Unpack(c.Stream, &serviceA)
+        block, e :=c.Bind(&serviceA)
         fmt.Println(block, e)
         c.Reply(8, "success")
     case 9:
         var serviceB ServiceB
-        block,e :=packx.Unpack(c.Stream, &serviceB)
+        //block, e := packx.Unpack(c.Stream, &serviceB)
+        block, e :=c.Bind(&serviceB)
         fmt.Println(block, e)
         c.JSON(10, "success")
     }
@@ -249,7 +252,7 @@ func onMessage(c *tcpx.Context){
     }(c.Stream)
 }
 ```
-**Attention**: Stream has been packed per request, no pack stuck probelm. 
+**Attention**: Stream has been packed per request, no pack stuck probelm.
 
 ### 3.3 How to design a message?
 You don't need to design message block yourself.Instead do it like:
