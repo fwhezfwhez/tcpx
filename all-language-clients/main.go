@@ -45,7 +45,7 @@ func main() {
 		case "xml":
 			user = &XMLUser{}
 		case "toml", "tml":
-			user = TOMLUser{}
+			user = &TOMLUser{}
 		case "yaml", "yml":
 			user = &YAMLUser{}
 		case "protobuf", "proto":

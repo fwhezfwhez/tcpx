@@ -6,9 +6,9 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/fwhezfwhez/tcpx"
+	"github.com/fwhezfwhez/tcpx/all-language-clients/model"
 	"io/ioutil"
 	"net/http"
-	"tcpx/all-language-clients/model"
 )
 
 type JSONUser struct {
@@ -25,25 +25,28 @@ type YAMLUser struct {
 	Username string `yaml:"username"`
 }
 
-var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
-
 type Param struct {
 	Stream      []byte `json:"stream"`
 	MarshalName string `json:"marshal_name"`
 }
 
 func main() {
-     // TestGoJSON()
-     TestProtoBuf()
+	// TestGoJSON()
+	// TestGoProtoBuf()
+	// TestGoTOML()
+	// TestGoYAML()
+	// TestGoXML()
 }
 
-func TestProtoBuf() {
+func TestGoProtoBuf() {
 	var c http.Client
+	var packx = tcpx.NewPackx(tcpx.ProtobufMarshaller{})
 	// json
-	var userJson = model.User{
+	var userProto = model.User{
 		Username: "tcpx",
 	}
-	buf, e := packx.Pack(1, userJson)
+
+	buf, e := packx.Pack(1, &userProto)
 	if e != nil {
 		panic(e)
 	}
@@ -56,7 +59,7 @@ func TestProtoBuf() {
 		panic(e)
 	}
 	req, e := http.NewRequest("POST", "http://localhost:7000/tcpx/clients/stream/", bytes.NewReader(send))
-	req.Header.Set("Content-Type","application/json")
+	req.Header.Set("Content-Type", "application/json")
 	if e != nil {
 		panic(e)
 	}
@@ -73,6 +76,7 @@ func TestProtoBuf() {
 
 func TestGoJSON() {
 	var c http.Client
+	var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
 	// json
 	var userJson = JSONUser{
 		Username: "tcpx",
@@ -90,7 +94,112 @@ func TestGoJSON() {
 		panic(e)
 	}
 	req, e := http.NewRequest("POST", "http://localhost:7000/tcpx/clients/stream/", bytes.NewReader(send))
-	req.Header.Set("Content-Type","application/json")
+	req.Header.Set("Content-Type", "application/json")
+	if e != nil {
+		panic(e)
+	}
+	rsp, e := c.Do(req)
+	if rsp != nil && rsp.Body != nil {
+		defer rsp.Body.Close()
+	}
+	rs, e := ioutil.ReadAll(rsp.Body)
+	if e != nil {
+		panic(e)
+	}
+	fmt.Println(string(rs))
+}
+
+func TestGoTOML() {
+	var c http.Client
+	var packx = tcpx.NewPackx(tcpx.TomlMarshaller{})
+	// json
+	var userToml = TOMLUser{
+		Username: "tcpx",
+	}
+	buf, e := packx.Pack(1, userToml)
+	if e != nil {
+		panic(e)
+	}
+	var param = Param{
+		Stream:      buf,
+		MarshalName: "toml",
+	}
+	send, e := json.Marshal(param)
+	if e != nil {
+		panic(e)
+	}
+	req, e := http.NewRequest("POST", "http://localhost:7000/tcpx/clients/stream/", bytes.NewReader(send))
+	req.Header.Set("Content-Type", "application/json")
+	if e != nil {
+		panic(e)
+	}
+	rsp, e := c.Do(req)
+	if rsp != nil && rsp.Body != nil {
+		defer rsp.Body.Close()
+	}
+	rs, e := ioutil.ReadAll(rsp.Body)
+	if e != nil {
+		panic(e)
+	}
+	fmt.Println(string(rs))
+}
+
+func TestGoYAML() {
+	var c http.Client
+	var packx = tcpx.NewPackx(tcpx.YamlMarshaller{})
+	// json
+	var userYaml = YAMLUser{
+		Username: "tcpx",
+	}
+	buf, e := packx.Pack(1, userYaml)
+	if e != nil {
+		panic(e)
+	}
+	var param = Param{
+		Stream:      buf,
+		MarshalName: "yaml",
+	}
+	send, e := json.Marshal(param)
+	if e != nil {
+		panic(e)
+	}
+	req, e := http.NewRequest("POST", "http://localhost:7000/tcpx/clients/stream/", bytes.NewReader(send))
+	req.Header.Set("Content-Type", "application/json")
+	if e != nil {
+		panic(e)
+	}
+	rsp, e := c.Do(req)
+	if rsp != nil && rsp.Body != nil {
+		defer rsp.Body.Close()
+	}
+	rs, e := ioutil.ReadAll(rsp.Body)
+	if e != nil {
+		panic(e)
+	}
+	fmt.Println(string(rs))
+}
+
+func TestGoXML() {
+	var c http.Client
+	var packx = tcpx.NewPackx(tcpx.XmlMarshaller{})
+	// json
+	var userXml = XMLUser{
+		Username: "tcpx",
+	}
+	buf, e := packx.Pack(1, userXml)
+	if e != nil {
+		panic(e)
+	}
+	var param = Param{
+		Stream:      buf,
+		MarshalName: "xml",
+	}
+	send, e := json.Marshal(param)
+	if e != nil {
+		panic(e)
+	}
+	req, e := http.NewRequest("POST", "http://localhost:7000/tcpx/clients/stream/", bytes.NewReader(send))
+	req.Header.Set("Content-Type", "application/json")
 	if e != nil {
 		panic(e)
 	}
