@@ -35,7 +35,7 @@ func main() {
 	// TestGoProtoBuf()
 	// TestGoTOML()
 	// TestGoYAML()
-	// TestGoXML()
+	TestGoXML()
 }
 
 func TestGoProtoBuf() {
@@ -194,6 +194,7 @@ func TestGoXML() {
 		Stream:      buf,
 		MarshalName: "xml",
 	}
+	fmt.Println(Debug(param))
 	send, e := json.Marshal(param)
 	if e != nil {
 		panic(e)
