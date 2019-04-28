@@ -8,6 +8,7 @@ import (
 	"github.com/fwhezfwhez/tcpx"
 	"io/ioutil"
 	"net/http"
+	"tcpx/all-language-clients/model"
 )
 
 type JSONUser struct {
@@ -32,7 +33,42 @@ type Param struct {
 }
 
 func main() {
-    // TestGoJSON()
+     // TestGoJSON()
+     TestProtoBuf()
+}
+
+func TestProtoBuf() {
+	var c http.Client
+	// json
+	var userJson = model.User{
+		Username: "tcpx",
+	}
+	buf, e := packx.Pack(1, userJson)
+	if e != nil {
+		panic(e)
+	}
+	var param = Param{
+		Stream:      buf,
+		MarshalName: "protobuf",
+	}
+	send, e := json.Marshal(param)
+	if e != nil {
+		panic(e)
+	}
+	req, e := http.NewRequest("POST", "http://localhost:7000/tcpx/clients/stream/", bytes.NewReader(send))
+	req.Header.Set("Content-Type","application/json")
+	if e != nil {
+		panic(e)
+	}
+	rsp, e := c.Do(req)
+	if rsp != nil && rsp.Body != nil {
+		defer rsp.Body.Close()
+	}
+	rs, e := ioutil.ReadAll(rsp.Body)
+	if e != nil {
+		panic(e)
+	}
+	fmt.Println(string(rs))
 }
 
 func TestGoJSON() {

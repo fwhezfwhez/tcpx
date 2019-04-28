@@ -246,7 +246,7 @@ func UnpackWithMarshaller(stream []byte, dest interface{}, marshaller Marshaller
 	}
 	// 包长
 	length := binary.BigEndian.Uint32(stream[0:4])
-	stream = stream[0:length]
+	stream = stream[0:length+4]
 	// messageID
 	messageID := binary.BigEndian.Uint32(stream[4:8])
 	// header长度
