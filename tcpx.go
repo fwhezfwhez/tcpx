@@ -1,7 +1,6 @@
 package tcpx
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
 	"io"
@@ -27,20 +26,6 @@ func NewTcpX(marshaller Marshaller) *TcpX {
 		Packx: NewPackx(marshaller),
 		Mux:   NewMux(),
 	}
-}
-
-// Clone a same tcpx without interfering the former
-func (tcpx *TcpX) Clone() TcpX {
-	b, e := json.Marshal(tcpx)
-	if e != nil {
-		panic(e)
-	}
-	var tmp TcpX
-	e = json.Unmarshal(b, &tmp)
-	if e != nil {
-		panic(e)
-	}
-	return tmp
 }
 
 // Middleware typed 'AnchorTypedMiddleware'.
