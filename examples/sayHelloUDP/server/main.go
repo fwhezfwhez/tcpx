@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
-	// "github.com/fwhezfwhez/tcpx"
-	"tcpx"
+	"github.com/fwhezfwhez/tcpx"
+	// "tcpx"
 )
 
 func main() {
@@ -64,13 +64,13 @@ func OnMessage(c *tcpx.Context) {
 	case 7:
 		var serviceA ServiceA
 		// block, e := packx.Unpack(c.Stream, &serviceA)
-		block, e :=c.Bind(&serviceA)
+		block, e := c.Bind(&serviceA)
 		fmt.Println(block, e)
 		c.Reply(8, "success")
 	case 9:
 		var serviceB ServiceB
 		//block, e := packx.Unpack(c.Stream, &serviceB)
-		block, e :=c.Bind(&serviceB)
+		block, e := c.Bind(&serviceB)
 		fmt.Println(block, e)
 		c.JSON(10, "success")
 	}
@@ -148,4 +148,3 @@ func Middleware3(c *tcpx.Context) {
 func MiddlewareGlobal(c *tcpx.Context) {
 	fmt.Println("I am global middleware exampled by 'srv.UseGlobal(MiddlewareGlobal)'")
 }
-

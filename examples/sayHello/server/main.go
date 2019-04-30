@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
-	//"github.com/fwhezfwhez/tcpx"
-	"tcpx"
+	"github.com/fwhezfwhez/tcpx"
+	//"tcpx"
 )
 
 func main() {
