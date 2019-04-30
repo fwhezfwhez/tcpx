@@ -39,3 +39,8 @@ func TestTcpX_ListenAndServe(t *testing.T) {
 	}()
 	time.Sleep(10 * time.Second)
 }
+func TestTcpX_Clone(t *testing.T) {
+	var former = NewTcpX(JsonMarshaller{})
+
+	fmt.Println(former.Clone())
+}

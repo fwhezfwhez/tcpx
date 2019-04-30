@@ -4,15 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
+
 	"net"
-	//"github.com/fwhezfwhez/tcpx"
 	"tcpx"
 )
 
 var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
 
 func main() {
-	conn, err := net.Dial("tcp", "localhost:7171")
+	conn, err := net.Dial("udp", "localhost:7172")
 	if err != nil {
 		panic(err)
 	}
@@ -69,14 +69,16 @@ func main() {
 
 func Receive(conn net.Conn) <-chan []byte {
 	var received = make(chan []byte, 200)
+	var buffer = make([]byte, 5000, 5000)
 	go func() {
 		for {
-			buf, e := packx.FirstBlockOf(conn)
+			// udpConn can't Read fixed small size, can only read for all
+			n, e := conn.Read(buffer)
 			if e != nil {
-				fmt.Println(e.Error())
+				fmt.Println(errorx.Wrap(e).Error())
 				break
 			}
-			received <- buf
+			received <- buffer[0:n]
 			continue
 		}
 	}()

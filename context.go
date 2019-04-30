@@ -2,6 +2,7 @@ package tcpx
 
 import (
 	"github.com/fwhezfwhez/errorx"
+	"github.com/fwhezfwhez/tcpx"
 	"net"
 	"strings"
 	"sync"
@@ -18,7 +19,13 @@ const (
 // Packx used to save a marshaller helping marshal and unMarshal stream
 // Stream is read from net.Conn per request
 type Context struct {
-	Conn                 net.Conn
+	// for tcp conn
+	Conn net.Conn
+
+	// for udp conn
+	PacketConn net.PacketConn
+	Addr       net.Addr
+
 	PerConnectionContext *sync.Map
 	PerRequestContext    *sync.Map
 
@@ -32,6 +39,8 @@ type Context struct {
 	handlers []func(*Context)
 }
 
+// New a context.
+// This is used for new a context for tcp server.
 func NewContext(conn net.Conn, marshaller Marshaller) *Context {
 	return &Context{
 		Conn:                 conn,
@@ -42,15 +51,56 @@ func NewContext(conn net.Conn, marshaller Marshaller) *Context {
 		offset: -1,
 	}
 }
+
+// New a context.
+// This is used for new a context for tcp server.
+func NewTCPContext(conn net.Conn, marshaller Marshaller) *Context {
+	return NewContext(conn, marshaller)
+}
+
+// New a context.
+// This is used for new a context for udp server.
+func NewUDPContext(conn net.PacketConn, addr net.Addr, marshaller Marshaller) *Context {
+	return &Context{
+		PacketConn:           conn,
+		Addr:                 addr,
+		PerConnectionContext: nil,
+		PerRequestContext:    &sync.Map{},
+
+		Packx:  NewPackx(marshaller),
+		offset: -1,
+	}
+}
+
+func (ctx *Context) ConnectionProtocolType() string {
+	if ctx.Conn != nil {
+		return "tcp"
+	}
+	if ctx.Addr != nil && ctx.PacketConn != nil {
+		return "udp"
+	}
+	return "tcp"
+}
 func (ctx *Context) Bind(dest interface{}) (Message, error) {
 	return ctx.Packx.Unpack(ctx.Stream, dest)
 }
 
+// When context serves for tcp, set context k-v pair of PerConnectionContext.
+// When context serves for udp, set context k-v pair of PerRequestContext.
 func (ctx *Context) SetCtxPerConn(k, v interface{}) {
+	if ctx.ConnectionProtocolType() == "udp" {
+		ctx.SetCtxPerRequest(k, v)
+		return
+	}
 	ctx.PerConnectionContext.Store(k, v)
 }
 
+// When context serves for tcp, get context k-v pair of PerConnectionContext.
+// When context serves for udp, get context k-v pair of PerRequestContext.
 func (ctx *Context) GetCtxPerConn(k interface{}) (interface{}, bool) {
+	if ctx.ConnectionProtocolType() == "udp" {
+		return ctx.GetCtxPerRequest(k)
+	}
 	return ctx.PerConnectionContext.Load(k)
 }
 
@@ -67,121 +117,71 @@ func (ctx *Context) Reply(messageID int32, src interface{}, headers ...map[strin
 	var buf []byte
 	var e error
 	buf, e = ctx.Packx.Pack(messageID, src, headers ...)
-	if _, e = ctx.Conn.Write(buf); e != nil {
+	if e != nil {
 		return errorx.Wrap(e)
 	}
-
-	return nil
+	return ctx.replyBuf(buf)
 }
 
 // Reply to client using json marshaller.
 // Whatever ctx.Packx.Marshaller.MarshalName is 'json' or not , message block will marshal its header and body by json marshaller.
 func (ctx *Context) JSON(messageID int32, src interface{}, headers ...map[string]interface{}) error {
-	var buf []byte
-	var e error
-	if ctx.Packx.Marshaller.MarshalName() != "json" {
-		buf, e = NewPackx(JsonMarshaller{}).Pack(messageID, src, headers...)
-		if e != nil {
-			return errorx.Wrap(e)
-		}
-		_, e = ctx.Conn.Write(buf)
-		if e != nil {
-			return errorx.Wrap(e)
-		}
-	}
-	buf, e = ctx.Packx.Pack(messageID, src, headers ...)
-	if _, e = ctx.Conn.Write(buf); e != nil {
-		return errorx.Wrap(e)
-	}
-
-	return nil
+	return ctx.commonReply("json", messageID, src, headers...)
 }
 
 // not finished
 func (ctx *Context) XML(messageID int32, src interface{}, headers ...map[string]interface{}) error {
-	var buf []byte
-	var e error
-	if ctx.Packx.Marshaller.MarshalName() != "xml" {
-		buf, e = NewPackx(XmlMarshaller{}).Pack(messageID, src, headers...)
-		if e != nil {
-			return errorx.Wrap(e)
-		}
-		_, e = ctx.Conn.Write(buf)
-		if e != nil {
-			return errorx.Wrap(e)
-		}
-	}
-	buf, e = ctx.Packx.Pack(messageID, src, headers ...)
-	if _, e = ctx.Conn.Write(buf); e != nil {
-		return errorx.Wrap(e)
-	}
-
-	return nil
+	return ctx.commonReply("xml", messageID, src, headers...)
 }
 
 // not finished
 func (ctx *Context) TOML(messageID int32, src interface{}, headers ...map[string]interface{}) error {
-	var buf []byte
-	var e error
-	if ctx.Packx.Marshaller.MarshalName() != "toml" {
-		buf, e = NewPackx(TomlMarshaller{}).Pack(messageID, src, headers...)
-		if e != nil {
-			return errorx.Wrap(e)
-		}
-		_, e = ctx.Conn.Write(buf)
-		if e != nil {
-			return errorx.Wrap(e)
-		}
-	}
-	buf, e = ctx.Packx.Pack(messageID, src, headers ...)
-	if _, e = ctx.Conn.Write(buf); e != nil {
-		return errorx.Wrap(e)
-	}
-
-	return nil
+	return ctx.commonReply("toml", messageID, src, headers...)
 }
 
 // not finished
 func (ctx *Context) YAML(messageID int32, src interface{}, headers ...map[string]interface{}) error {
-	var buf []byte
-	var e error
-	if ctx.Packx.Marshaller.MarshalName() != "yaml" {
-		buf, e = NewPackx(YamlMarshaller{}).Pack(messageID, src, headers...)
-		if e != nil {
-			return errorx.Wrap(e)
-		}
-		_, e = ctx.Conn.Write(buf)
-		if e != nil {
-			return errorx.Wrap(e)
-		}
-	}
-	buf, e = ctx.Packx.Pack(messageID, src, headers ...)
-	if _, e = ctx.Conn.Write(buf); e != nil {
-		return errorx.Wrap(e)
-	}
-
-	return nil
+	return ctx.commonReply("yaml", messageID, src, headers...)
 }
 
 // not finished
 func (ctx *Context) ProtoBuf(messageID int32, src interface{}, headers ...map[string]interface{}) error {
+	return ctx.commonReply("protobuf", messageID, src, headers...)
+}
+
+func (ctx *Context) commonReply(marshalName string, messageID int32, src interface{}, headers ...map[string]interface{}) error {
 	var buf []byte
 	var e error
-	if ctx.Packx.Marshaller.MarshalName() != "protobuf" {
-		buf, e = NewPackx(ProtobufMarshaller{}).Pack(messageID, src, headers...)
+	var marshaller tcpx.Marshaller
+	if ctx.Packx.Marshaller.MarshalName() != marshalName {
+		marshaller, e = GetMarshallerByMarshalName(marshalName)
 		if e != nil {
 			return errorx.Wrap(e)
 		}
-		_, e = ctx.Conn.Write(buf)
+		buf, e = NewPackx(marshaller).Pack(messageID, src, headers...)
+		if e != nil {
+			return errorx.Wrap(e)
+		}
+		e = ctx.replyBuf(buf)
 		if e != nil {
 			return errorx.Wrap(e)
 		}
 	}
 	buf, e = ctx.Packx.Pack(messageID, src, headers ...)
-	if _, e = ctx.Conn.Write(buf); e != nil {
-		return errorx.Wrap(e)
-	}
+	return ctx.replyBuf(buf)
+}
 
+func (ctx *Context) replyBuf(buf []byte) (e error) {
+	switch ctx.ConnectionProtocolType() {
+	case "tcp":
+		if _, e = ctx.Conn.Write(buf); e != nil {
+			return errorx.Wrap(e)
+		}
+	case "udp":
+		if _, e = ctx.PacketConn.WriteTo(buf, ctx.Addr); e != nil {
+			return errorx.Wrap(e)
+		}
+	}
 	return nil
 }
 
@@ -214,7 +214,7 @@ func (ctx *Context) Next() {
 	for ; ctx.offset < s; ctx.offset++ {
 		if !ctx.isAbort() {
 			ctx.handlers[ctx.offset](ctx)
-		} else{
+		} else {
 			return
 		}
 	}
@@ -232,7 +232,7 @@ func (ctx *Context) Reset() {
 	}
 	ctx.handlers = ctx.handlers[:0]
 }
-func (ctx *Context) isAbort() bool{
+func (ctx *Context) isAbort() bool {
 	if ctx.offset >= ABORT {
 		return true
 	}

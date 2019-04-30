@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
-	//"github.com/fwhezfwhez/tcpx"
+	// "github.com/fwhezfwhez/tcpx"
 	"tcpx"
 )
 
@@ -31,22 +31,10 @@ func main() {
 	srv.AddHandler(3, SayGoodBye)
 
 	srv.AddHandler(5, Middleware3, SayName)
-	// tcp
-	go func(){
-		fmt.Println("tcp srv listen on 7171")
-		if e := srv.ListenAndServe("tcp", ":7171"); e != nil {
-			panic(e)
-		}
-	}()
-
-	// udp
-	go func(){
-		fmt.Println("udp srv listen on 7172")
-		if e := srv.ListenAndServe("udp", ":7172"); e != nil {
-			panic(e)
-		}
-	}()
-	select {}
+	fmt.Println("udp srv listen on 7172")
+	if e := srv.ListenAndServe("udp", ":7172"); e != nil {
+		panic(e)
+	}
 }
 
 func OnConnect(c *tcpx.Context) {
