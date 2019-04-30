@@ -233,6 +233,7 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 	}
 }
 
+// Not finished, do not use.
 func (tcpx TcpX) ListenAndServeUDP(network, addr string, maxBufferSize ...int) error {
 	if len(maxBufferSize) > 1 {
 		panic(errorx.NewFromStringf("'tcpx.ListenAndServeUDP''s maxBufferSize should has length less by 1 but got %d", len(maxBufferSize)))
@@ -246,12 +247,12 @@ func (tcpx TcpX) ListenAndServeUDP(network, addr string, maxBufferSize ...int) e
 
 	// listen to incoming udp packets
 	go func(packetConn net.PacketConn) {
-		for {
-			// read from udp conn
-			buffer, addr, e := ReadAllUDP(conn, maxBufferSize...)
-			fmt.Println("receive from client:", string(buffer))
-			continue
-		}
+		//for {
+		//	// read from udp conn
+		//	//buffer, addr, e := ReadAllUDP(conn, maxBufferSize...)
+		//	//fmt.Println("receive from client:", string(buffer))
+		//	//continue
+		//}
 	}(conn)
 
 	select {}
