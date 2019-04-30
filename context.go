@@ -2,7 +2,6 @@ package tcpx
 
 import (
 	"github.com/fwhezfwhez/errorx"
-	"github.com/fwhezfwhez/tcpx"
 	"net"
 	"strings"
 	"sync"
@@ -152,7 +151,7 @@ func (ctx *Context) ProtoBuf(messageID int32, src interface{}, headers ...map[st
 func (ctx *Context) commonReply(marshalName string, messageID int32, src interface{}, headers ...map[string]interface{}) error {
 	var buf []byte
 	var e error
-	var marshaller tcpx.Marshaller
+	var marshaller Marshaller
 	if ctx.Packx.Marshaller.MarshalName() != marshalName {
 		marshaller, e = GetMarshallerByMarshalName(marshalName)
 		if e != nil {
