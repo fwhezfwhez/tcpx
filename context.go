@@ -128,22 +128,26 @@ func (ctx *Context) JSON(messageID int32, src interface{}, headers ...map[string
 	return ctx.commonReply("json", messageID, src, headers...)
 }
 
-// not finished
+// Reply to client using xml marshaller.
+// Whatever ctx.Packx.Marshaller.MarshalName is 'xml' or not , message block will marshal its header and body by xml marshaller.
 func (ctx *Context) XML(messageID int32, src interface{}, headers ...map[string]interface{}) error {
 	return ctx.commonReply("xml", messageID, src, headers...)
 }
 
-// not finished
+// Reply to client using toml marshaller.
+// Whatever ctx.Packx.Marshaller.MarshalName is 'toml' or not , message block will marshal its header and body by toml marshaller.
 func (ctx *Context) TOML(messageID int32, src interface{}, headers ...map[string]interface{}) error {
 	return ctx.commonReply("toml", messageID, src, headers...)
 }
 
-// not finished
+// Reply to client using yaml marshaller.
+// Whatever ctx.Packx.Marshaller.MarshalName is 'yaml' or not , message block will marshal its header and body by yaml marshaller.
 func (ctx *Context) YAML(messageID int32, src interface{}, headers ...map[string]interface{}) error {
 	return ctx.commonReply("yaml", messageID, src, headers...)
 }
 
-// not finished
+// Reply to client using protobuf marshaller.
+// Whatever ctx.Packx.Marshaller.MarshalName is 'protobuf' or not , message block will marshal its header and body by protobuf marshaller.
 func (ctx *Context) ProtoBuf(messageID int32, src interface{}, headers ...map[string]interface{}) error {
 	return ctx.commonReply("protobuf", messageID, src, headers...)
 }
@@ -170,6 +174,7 @@ func (ctx *Context) commonReply(marshalName string, messageID int32, src interfa
 	return ctx.replyBuf(buf)
 }
 
+// Divide to udp and tcp replying accesses.
 func (ctx *Context) replyBuf(buf []byte) (e error) {
 	switch ctx.ConnectionProtocolType() {
 	case "tcp":
@@ -186,12 +191,19 @@ func (ctx *Context) replyBuf(buf []byte) (e error) {
 
 // client ip
 func (ctx Context) ClientIP() string {
-	arr := strings.Split(ctx.Conn.RemoteAddr().String(), ":")
+	var clientAddr string
+	switch ctx.ConnectionProtocolType() {
+	case "tcp":
+		clientAddr = ctx.Conn.RemoteAddr().String()
+	case "udp":
+		clientAddr = ctx.Addr.String()
+	}
+	arr := strings.Split(clientAddr, ":")
 	// ipv4
 	if len(arr) == 2 {
 		return arr[0]
 	}
-	// [::1] 本机
+	// [::1] localhost
 	if strings.Contains(ctx.Conn.RemoteAddr().String(), "[") && strings.Contains(ctx.Conn.RemoteAddr().String(), "]") {
 		return "127.0.0.1"
 	}
