@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
 	"github.com/fwhezfwhez/tcpx"
-	//"tcpx"
+	// "tcpx"
 )
 
 func main() {
@@ -31,22 +31,10 @@ func main() {
 	srv.AddHandler(3, SayGoodBye)
 
 	srv.AddHandler(5, Middleware3, SayName)
-	// tcp
-	go func(){
-		fmt.Println("tcp srv listen on 7171")
-		if e := srv.ListenAndServe("tcp", ":7171"); e != nil {
-			panic(e)
-		}
-	}()
-
-	// udp
-	go func(){
-		fmt.Println("udp srv listen on 7172")
-		if e := srv.ListenAndServe("udp", ":7172"); e != nil {
-			panic(e)
-		}
-	}()
-	select {}
+	fmt.Println("udp srv listen on 7172")
+	if e := srv.ListenAndServe("udp", ":7172"); e != nil {
+		panic(e)
+	}
 }
 
 func OnConnect(c *tcpx.Context) {
@@ -76,13 +64,13 @@ func OnMessage(c *tcpx.Context) {
 	case 7:
 		var serviceA ServiceA
 		// block, e := packx.Unpack(c.Stream, &serviceA)
-		block, e :=c.Bind(&serviceA)
+		block, e := c.Bind(&serviceA)
 		fmt.Println(block, e)
 		c.Reply(8, "success")
 	case 9:
 		var serviceB ServiceB
 		//block, e := packx.Unpack(c.Stream, &serviceB)
-		block, e :=c.Bind(&serviceB)
+		block, e := c.Bind(&serviceB)
 		fmt.Println(block, e)
 		c.JSON(10, "success")
 	}
@@ -160,4 +148,3 @@ func Middleware3(c *tcpx.Context) {
 func MiddlewareGlobal(c *tcpx.Context) {
 	fmt.Println("I am global middleware exampled by 'srv.UseGlobal(MiddlewareGlobal)'")
 }
-

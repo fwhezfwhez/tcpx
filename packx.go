@@ -82,6 +82,20 @@ func (packx Packx) FirstBlockOf(r io.Reader) ([]byte, error) {
 	return UnpackToBlockFromReader(r)
 }
 
+// a stream from a buffer which can be apart by protocol.
+// FirstBlockOfBytes helps tear apart the first block []byte from a []byte buffer
+func (packx Packx) FirstBlockOfBytes(buffer []byte) ([]byte, error) {
+	if len(buffer) < 16 {
+		return nil, errors.New(fmt.Sprintf("require buffer length more than 16 but got %d", len(buffer)))
+	}
+	var length = binary.BigEndian.Uint32(buffer[0:4])
+	if len(buffer) < 4+int(length) {
+		return nil, errors.New(fmt.Sprintf("require buffer length more than %d but got %d", 4+int(length), len(buffer)))
+
+	}
+	return buffer[:4+int(length)], nil
+}
+
 // messageID of a stream.
 // Use this to choose which struct for unpacking.
 func (packx Packx) MessageIDOf(stream []byte) (int32, error) {
@@ -246,7 +260,7 @@ func UnpackWithMarshaller(stream []byte, dest interface{}, marshaller Marshaller
 	}
 	// 包长
 	length := binary.BigEndian.Uint32(stream[0:4])
-	stream = stream[0:length+4]
+	stream = stream[0 : length+4]
 	// messageID
 	messageID := binary.BigEndian.Uint32(stream[4:8])
 	// header长度
