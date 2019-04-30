@@ -31,7 +31,7 @@ func main() {
 
 	srv.AddHandler(5, Middleware3, SayName)
 	fmt.Println("srv listen on 7171")
-	if e := srv.ListenAndServe("tcp", ":7171"); e != nil {
+	if e := srv.ListenAndServe("udp", ":7171"); e != nil {
 		panic(e)
 	}
 }
@@ -147,3 +147,4 @@ func Middleware3(c *tcpx.Context) {
 func MiddlewareGlobal(c *tcpx.Context) {
 	fmt.Println("I am global middleware exampled by 'srv.UseGlobal(MiddlewareGlobal)'")
 }
+

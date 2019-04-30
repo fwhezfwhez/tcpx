@@ -96,7 +96,7 @@ func ExampleJSON() {
 
 	var unPackRequest = UnPackRequest{
 		MarshalName: "json",
-		Stream:      packResult.Stream,
+		Stream:      append(packResult.Stream),
 	}
 	reqBuf, e = json.Marshal(unPackRequest)
 	if e != nil {
@@ -115,6 +115,7 @@ func ExampleJSON() {
 	if e != nil {
 		panic(e)
 	}
+
 	type Result struct {
 		MessageID   int32                  `json:"message_id"`
 		Header      map[string]interface{} `json:"header"`
