@@ -60,21 +60,21 @@ func main(){
     srv.OnConnect = OnConnect
     srv.OnMessage = OnMessage
 
-	go func(){
-		fmt.Println("tcp srv listen on 7171")
-		if e := srv.ListenAndServe("tcp", ":7171"); e != nil {
-			panic(e)
-		}
-	}()
+    go func(){
+        fmt.Println("tcp srv listen on 7171")
+        if e := srv.ListenAndServe("tcp", ":7171"); e != nil {
+            panic(e)
+        }
+    }()
 
-	// udp
-	go func(){
-		fmt.Println("udp srv listen on 7172")
-		if e := srv.ListenAndServe("udp", ":7172"); e != nil {
-			panic(e)
-		}
-	}()
-	select {}
+    // udp
+    go func(){
+        fmt.Println("udp srv listen on 7172")
+        if e := srv.ListenAndServe("udp", ":7172"); e != nil {
+            panic(e)
+        }
+    }()
+    select {}
 }
 
 func OnConnect(c *tcpx.Context) {
