@@ -147,3 +147,4 @@ func Middleware3(c *tcpx.Context) {
 func MiddlewareGlobal(c *tcpx.Context) {
 	fmt.Println("I am global middleware exampled by 'srv.UseGlobal(MiddlewareGlobal)'")
 }
+

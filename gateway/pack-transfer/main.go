@@ -138,7 +138,11 @@ func main() {
 
 		for {
 			block, e := packx.FirstBlockOf(reader)
-			if e == io.EOF {
+			if e != nil {
+				if e == io.EOF {
+					break
+				}
+				fmt.Println(errorx.Wrap(e).Error())
 				break
 			}
 			var result Result

@@ -96,7 +96,8 @@ func ExampleJSON() {
 
 	var unPackRequest = UnPackRequest{
 		MarshalName: "json",
-		Stream:      packResult.Stream,
+		// send to message block one time.
+		Stream:      append(packResult.Stream, packResult.Stream...),
 	}
 	reqBuf, e = json.Marshal(unPackRequest)
 	if e != nil {
@@ -115,6 +116,7 @@ func ExampleJSON() {
 	if e != nil {
 		panic(e)
 	}
+
 	type Result struct {
 		MessageID   int32                  `json:"message_id"`
 		Header      map[string]interface{} `json:"header"`
@@ -135,6 +137,13 @@ func ExampleJSON() {
 
 	// we took {"username":"hello, tcpx"} for example, so response.Blocks length =1
 	var value ServiceContent
+
+	// If request stream is more than one messages,
+	// you should unmarshal response stream like
+	// 	e = json.Unmarshal(response.Blocks[0].Stream, &value)
+	// 	e = json.Unmarshal(response.Blocks[1].Stream, &value1)
+	// 	e = json.Unmarshal(response.Blocks[2].Stream, &value2)
+	// rather than json.Unmarshal(response.Block, &values), values refers to []Value
 	e = json.Unmarshal(response.Blocks[0].Stream, &value)
 	if e != nil {
 		panic(e)

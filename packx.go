@@ -300,7 +300,7 @@ func UnpackWithMarshallerName(stream []byte, dest interface{}, marshallerName st
 // [4]byte -- messageID          fixed_size,binary big endian encode
 // [4]byte -- headerLength       fixed_size,binary big endian encode
 // [4]byte -- bodyLength         fixed_size,binary big endian encode
-// []byte -- header              marshal by marshaller
+// []byte -- header              marshal by json
 // []byte -- body                marshal by marshaller
 // ussage:
 // for {
