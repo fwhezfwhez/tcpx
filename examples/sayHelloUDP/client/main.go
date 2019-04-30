@@ -34,13 +34,13 @@ func main() {
 
 	var buf []byte
 	var e error
-	//buf, e = packx.Pack(5, "hello,I am client xiao ming", map[string]interface{}{
-	//	"api": "/tcpx/client1/",
-	//})
-	//if e != nil {
-	//	panic(e)
-	//}
-	//conn.Write(buf)
+	buf, e = packx.Pack(5, "hello,I am client xiao ming", map[string]interface{}{
+		"api": "/tcpx/client1/",
+	})
+	if e != nil {
+		panic(e)
+	}
+	conn.Write(buf)
 
 	//buf, e = packx.Pack(7, struct {
 	//	Username string `json:"username"`
@@ -53,16 +53,16 @@ func main() {
 	//
 	//conn.Write(buf)
 
-	buf, e = packx.Pack(9, struct {
-		ServiceName string `json:"service_name"`
-	}{"FT"}, map[string]interface{}{
-		"api": "/tcpx/client1/",
-	})
-
-	if e != nil {
-		panic(e)
-	}
-	conn.Write(buf)
+	//buf, e = packx.Pack(9, struct {
+	//	ServiceName string `json:"service_name"`
+	//}{"FT"}, map[string]interface{}{
+	//	"api": "/tcpx/client1/",
+	//})
+	//
+	//if e != nil {
+	//	panic(e)
+	//}
+	//conn.Write(buf)
 
 	select {}
 }

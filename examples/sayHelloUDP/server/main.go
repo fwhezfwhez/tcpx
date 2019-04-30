@@ -21,7 +21,7 @@ func main() {
 	// When srv.OnMessage has set, srv.AddHandler() makes no sense, it means user wants to handle raw message stream by self.
 	// Besides, if OnMessage is not nil, middlewares of global type(by srv.UseGlobal) and anchor type(by srv.Use, srv.UnUse)
 	// will all be executed regardless of an anchor type middleware being unUsed or not.
-	srv.OnMessage = OnMessage
+	// srv.OnMessage = OnMessage
 
 	srv.UseGlobal(MiddlewareGlobal)
 	srv.Use("middleware1", Middleware1, "middleware2", Middleware2)
