@@ -100,7 +100,6 @@ func OnMessage(c *tcpx.Context) {
     }
 
     switch messageID {
-    switch messageID {
     case 7:
         var serviceA ServiceA
         // block, e := packx.Unpack(c.Stream, &serviceA)
