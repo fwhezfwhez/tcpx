@@ -39,7 +39,7 @@ func main() {
 }
 
 func OnClose(c *tcpx.Context) {
-	fmt.Println(fmt.Sprintf("connecting from remote host %s network %s has stoped", c.Conn.RemoteAddr().String(), c.Conn.RemoteAddr().Network()))
+	fmt.Println(fmt.Sprintf("connecting from remote host %s network %s has stoped", c.ClientIP(), c.Network()))
 }
 
 var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
