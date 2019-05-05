@@ -1,8 +1,8 @@
 sayHello shows how client communicates with server.
-This example provides tcp and udp server side examples.But only tcp client side are provided.Udp client side is in /examples/sayHelloUDP/client/
+This example provides tcp, udp, and kcp server side examples.But only tcp client side are provided.Udp and kcp client sides are in /examples/sayHelloUDP/client/ and /examples/sayHelloKCP/client/
 
 ## start server and client
-**server side(tcp and udp):**
+**server side(tcp, udp and kcp):**
 
 `cd server`
 
@@ -18,6 +18,12 @@ This example provides tcp and udp server side examples.But only tcp client side 
 **udp**
 
 `cd example/sayHelloUDP/client`
+
+`go run main.go`
+
+**kcp**
+
+`cd example/sayHelloKCP/client`
 
 `go run main.go`
 

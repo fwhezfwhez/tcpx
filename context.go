@@ -2,6 +2,7 @@ package tcpx
 
 import (
 	"github.com/fwhezfwhez/errorx"
+	"github.com/xtaci/kcp-go"
 	"net"
 	"strings"
 	"sync"
@@ -24,6 +25,9 @@ type Context struct {
 	// for udp conn
 	PacketConn net.PacketConn
 	Addr       net.Addr
+
+	// for kcp conn
+	UDPSession *kcp.UDPSession
 
 	PerConnectionContext *sync.Map
 	PerRequestContext    *sync.Map
@@ -71,12 +75,29 @@ func NewUDPContext(conn net.PacketConn, addr net.Addr, marshaller Marshaller) *C
 	}
 }
 
+// New a context.
+// This is used for new a context for kcp server.
+func NewKCPContext(udpSession *kcp.UDPSession, marshaller Marshaller) *Context {
+	return &Context{
+		UDPSession:           udpSession,
+		PerConnectionContext: nil,
+		PerRequestContext:    &sync.Map{},
+
+		Packx:  NewPackx(marshaller),
+		offset: -1,
+	}
+}
+
+// ConnectionProtocol returns server protocol, tcp, udp, kcp
 func (ctx *Context) ConnectionProtocolType() string {
 	if ctx.Conn != nil {
 		return "tcp"
 	}
 	if ctx.Addr != nil && ctx.PacketConn != nil {
 		return "udp"
+	}
+	if ctx.UDPSession != nil {
+		return "kcp"
 	}
 	return "tcp"
 }
@@ -185,8 +206,16 @@ func (ctx *Context) replyBuf(buf []byte) (e error) {
 		if _, e = ctx.PacketConn.WriteTo(buf, ctx.Addr); e != nil {
 			return errorx.Wrap(e)
 		}
+	case "kcp":
+		if _, e = ctx.UDPSession.Write(buf); e != nil {
+			return errorx.Wrap(e)
+		}
 	}
 	return nil
+}
+
+func (ctx Context) Network() string {
+	return ctx.ConnectionProtocolType()
 }
 
 // client ip
@@ -197,6 +226,8 @@ func (ctx Context) ClientIP() string {
 		clientAddr = ctx.Conn.RemoteAddr().String()
 	case "udp":
 		clientAddr = ctx.Addr.String()
+	case "kcp":
+		clientAddr = ctx.UDPSession.RemoteAddr().String()
 	}
 	arr := strings.Split(clientAddr, ":")
 	// ipv4
@@ -204,7 +235,7 @@ func (ctx Context) ClientIP() string {
 		return arr[0]
 	}
 	// [::1] localhost
-	if strings.Contains(ctx.Conn.RemoteAddr().String(), "[") && strings.Contains(ctx.Conn.RemoteAddr().String(), "]") {
+	if strings.Contains(clientAddr, "[") && strings.Contains(clientAddr, "]") {
 		return "127.0.0.1"
 	}
 	// ivp6

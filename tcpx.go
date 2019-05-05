@@ -3,6 +3,7 @@ package tcpx
 import (
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
+	"github.com/xtaci/kcp-go"
 	"io"
 	"reflect"
 
@@ -128,6 +129,9 @@ func (tcpx *TcpX) ListenAndServe(network, addr string) error {
 	if In(network, []string{"udp", "udp4", "udp6", "unixgram", "ip%"}) {
 		return tcpx.ListenAndServeUDP(network, addr)
 	}
+	if In(network, []string{"kcp"}) {
+		return tcpx.ListenAndServeKCP(network, addr)
+	}
 	return errorx.NewFromStringf("'network' doesn't support '%s'", network)
 }
 
@@ -236,6 +240,7 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 }
 
 // udp
+// maxBufferSize can set buffer length, if receive a message longer than it ,
 func (tcpx *TcpX) ListenAndServeUDP(network, addr string, maxBufferSize ...int) error {
 	if len(maxBufferSize) > 1 {
 		panic(errorx.NewFromStringf("'tcpx.ListenAndServeUDP''s maxBufferSize should has length less by 1 but got %d", len(maxBufferSize)))
@@ -245,8 +250,6 @@ func (tcpx *TcpX) ListenAndServeUDP(network, addr string, maxBufferSize ...int) 
 	if err != nil {
 		panic(err)
 	}
-	defer conn.Close()
-
 	// listen to incoming udp packets
 	go func(conn net.PacketConn, tcpx *TcpX) {
 		defer func() {
@@ -266,7 +269,12 @@ func (tcpx *TcpX) ListenAndServeUDP(network, addr string, maxBufferSize ...int) 
 					break
 				}
 				Logger.Println(e.Error())
-				break
+				continue
+				//conn.Close()
+				//conn, err = net.ListenPacket(network, addr)
+				//if err != nil {
+				//	panic(err)
+				//}
 			}
 			ctx := NewUDPContext(conn, addr, tcpx.Packx.Marshaller)
 			ctx.Stream, e = tcpx.Packx.FirstBlockOfBytes(buffer)
@@ -362,4 +370,127 @@ func ReadAllUDP(conn net.PacketConn, maxBufferSize ...int) ([]byte, net.Addr, er
 		return nil, nil, e
 	}
 	return buffer[0:n], addr, nil
+}
+
+// kcp
+func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ... interface{}) error {
+	listener, err := kcp.ListenWithOptions(addr, nil, 10, 3)
+	defer Defer(func() {
+		listener.Close()
+	})
+	if err != nil {
+		return err
+	}
+	for {
+		conn, e := listener.AcceptKCP()
+		if e != nil {
+			Logger.Println(err.Error())
+			continue
+		}
+		ctx := NewKCPContext(conn, tcpx.Packx.Marshaller)
+		if tcpx.OnConnect != nil {
+			tcpx.OnConnect(ctx)
+		}
+		go func (ctx *Context, tcpx *TcpX){
+			defer func() {
+				if e := recover(); e != nil {
+					Logger.Println(fmt.Sprintf("recover from panic %v", e))
+				}
+			}()
+			defer ctx.UDPSession.Close()
+			if tcpx.OnClose != nil {
+				defer tcpx.OnClose(ctx)
+			}
+			var e error
+			var n int
+			var buffer = make([]byte, 1024, 1024)
+			for {
+				n, e = conn.Read(buffer)
+				if e != nil {
+					if e == io.EOF {
+						break
+					}
+					fmt.Println(errorx.Wrap(e))
+					break
+				}
+				// client should send per block, rather than blocks bond together.
+				// if blocks are bond, only first block are useful.
+				ctx.Stream, e = tcpx.Packx.FirstBlockOfBytes(buffer[0:n])
+				if e != nil {
+					Logger.Println(e.Error())
+					// if byte stream invalid, conn will close
+					break
+				}
+
+				// Can't used prefixed by `go`
+				// because requests on a same connection share context
+				handleMiddleware(ctx, tcpx)
+
+			}
+		}(ctx,tcpx)
+	}
+	return nil
+}
+
+// This method is abstracted from ListenAndServe[,TCP,UDP] for handling middlewares.
+// When middlewares are on iterator, offset and handles are bond in 'ctx',which means when using protocol which
+// shares connection/context, this function should never be used concurrently, otherwise ok.
+// In specific, tcp and kcp should call like `handleMiddleware(ctx, tcpx)`, udp can call like `go handleMiddleware(ctx, tcpx)`,
+// because udp meets no connection, it's no-state protocol.
+//
+// However, this method is not open to call everywhere.
+// When rebuild new protocol server, this will be considerately used.
+func handleMiddleware(ctx *Context, tcpx *TcpX) {
+	if tcpx.OnMessage != nil {
+		// tcpx.Mux.execAllMiddlewares(ctx)
+		//tcpx.OnMessage(ctx)
+		if ctx.handlers == nil {
+			ctx.handlers = make([]func(c *Context), 0, 10)
+		}
+		ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
+		for _, v := range tcpx.Mux.MiddlewareAnchorMap {
+			ctx.handlers = append(ctx.handlers, v.Middleware)
+		}
+		ctx.handlers = append(ctx.handlers, tcpx.OnMessage)
+		if len(ctx.handlers) > 0 {
+			ctx.Next()
+		}
+		ctx.Reset()
+	} else {
+		messageID, e := tcpx.Packx.MessageIDOf(ctx.Stream)
+		if e != nil {
+			Logger.Println(errorx.Wrap(e).Error())
+			return
+		}
+		handler, ok := tcpx.Mux.Handlers[messageID]
+		if !ok {
+			Logger.Println(fmt.Sprintf("messageID %d handler not found", messageID))
+			return
+		}
+
+		//handler(ctx)
+
+		if ctx.handlers == nil {
+			ctx.handlers = make([]func(c *Context), 0, 10)
+		}
+
+		// global middleware
+		ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
+		// anchor middleware
+		messageIDAnchorIndex := tcpx.Mux.AnchorIndexOfMessageID(messageID)
+		for _, v := range tcpx.Mux.MiddlewareAnchorMap {
+			if messageIDAnchorIndex > v.AnchorIndex && messageIDAnchorIndex <= v.ExpireAnchorIndex {
+				ctx.handlers = append(ctx.handlers, v.Middleware)
+			}
+		}
+		// self-related middleware
+		ctx.handlers = append(ctx.handlers, tcpx.Mux.MessageIDSelfMiddleware[messageID]...)
+		// handler
+		ctx.handlers = append(ctx.handlers, handler)
+
+		if len(ctx.handlers) > 0 {
+			ctx.Next()
+		}
+		ctx.Reset()
+	}
 }

@@ -232,7 +232,12 @@ if one of middleware has called `c.Abort()`, middleware chain stops.
 **ATTENTION**: If `srv.OnMessage` is not nil, only `GlobalTypeMiddleware` and `AnchorTypeMiddleware` will make sense regardless of `AnchorTypeMiddleware` being UnUsed or not.
 
 ### 3.2 When to use OnMessage callback?
-`OnMessage` 's minimum unit block is **each message**, when`OnMessage` is not nil, `mux` will lose its effects.In the mean time, global middlewares and anchor middlewares will all make sense regardless of anchor middlewares being unUsed or not.
+`OnMessage` 's minimum unit block is **each message**, when`OnMessage` is not nil, `mux` will lose its effects.
+```go
+srv.OnMessage = OnMessage
+srv.AddHandler(1, SayName) // no use, because OnMessage is not nil, user should handle c.Stream by himself
+```
+In the mean time, global middlewares and anchor middlewares will all make sense regardless of anchor middlewares being unUsed or not.
 Here is part of source code:
 ```go
 go func(ctx *Context, tcpx *TcpX) {
@@ -286,6 +291,7 @@ func main(){
 If you're not golang client, see **[3.5 How client (not only golang) builds expected stream?](#35-how-client-not-only-golang-builds-expected-stream)**
 ### 3.4 How to specific marshal type?
 Now, tcpx supports json,xml,protobuf,toml,yaml like:
+
 client
 ```go
 var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
@@ -315,6 +321,7 @@ func (om OtherMarshaller) MarshalName() string{
     return "other_marshaller"
 }
 ```
+
 client
 ```go
 var packx = tcpx.NewPackx(OtherMarshaller{})
@@ -568,7 +575,7 @@ example response:
       {
         "message_id": 1,
         "header": {
-          "api": "/pack/"
+          "k1": "v1"
         },
         "marshal_name": "json",
         "stream": "eyJ1c2VybmFtZSI6ImhlbGxvLCB0Y3B4In0="
