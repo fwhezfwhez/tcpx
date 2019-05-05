@@ -145,10 +145,10 @@ func main(){
 }
 
 func OnConnect(c *tcpx.Context) {
-    fmt.Println(fmt.Sprintf("connecting from remote host %s network %s", c.ClientIP(), c.Conn.RemoteAddr().Network()))
+    fmt.Println(fmt.Sprintf("connecting from remote host %s network %s", c.ClientIP(), c.Network()))
 }
 func OnClose(c *tcpx.Context) {
-    fmt.Println(fmt.Sprintf("connecting from remote host %s network %s has stoped", c.Conn.RemoteAddr().String(), c.Conn.RemoteAddr().Network()))
+    fmt.Println(fmt.Sprintf("connecting from remote host %s network %s has stoped", c.ClientIP(), c.Network())
 }
 // func OnMessage(c *tcpx.Context) {
     // handle c.Stream
