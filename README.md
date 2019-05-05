@@ -75,14 +75,21 @@ func main(){
             panic(e)
         }
     }()
+    // kcp
+    go func(){
+        fmt.Println("kcp srv listen on 7173")
+        if e := srv.ListenAndServe("kcp", ":7173"); e != nil {
+            panic(e)
+        }
+    }()
     select {}
 }
 
 func OnConnect(c *tcpx.Context) {
-    fmt.Println(fmt.Sprintf("connecting from remote host %s network %s", c.ClientIP(), c.Conn.RemoteAddr().Network()))
+    fmt.Println(fmt.Sprintf("connecting from remote host %s network %s", c.ClientIP(), c.Network()))
 }
 func OnClose(c *tcpx.Context) {
-    fmt.Println(fmt.Sprintf("connecting from remote host %s network %s has stoped", c.Conn.RemoteAddr().String(), c.Conn.RemoteAddr().Network()))
+    fmt.Println(fmt.Sprintf("connecting from remote host %s network %s has stoped", c.ClientIP(), c.Network())
 }
 var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
 func OnMessage(c *tcpx.Context) {
