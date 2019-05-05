@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
 	"github.com/fwhezfwhez/tcpx"
-	// "tcpx"
+	//"tcpx"
 )
 
 func main() {
@@ -13,9 +13,8 @@ func main() {
 	// If mode is DEBUG, error in framework will log with error spot and time in detail
 	// tcpx.SetLogMode(tcpx.DEBUG)
 
-	// udp is no-state protocol, no need to have these
-	srv.OnClose = nil
-	srv.OnConnect = nil
+	srv.OnClose = OnClose
+	srv.OnConnect = OnConnect
 
 	// Mux routine and OnMessage callback can't meet .
 	// When OnMessage is not nil, routes will lose effect.
@@ -32,14 +31,21 @@ func main() {
 	srv.AddHandler(3, SayGoodBye)
 
 	srv.AddHandler(5, Middleware3, SayName)
-	fmt.Println("udp srv listen on 7172")
-	if e := srv.ListenAndServe("udp", ":7172"); e != nil {
-		panic(e)
-	}
+	// Kcp
+	go func(){
+		fmt.Println("kcp srv listen on 7173")
+		if e := srv.ListenAndServe("kcp", ":7173"); e != nil {
+			panic(e)
+		}
+	}()
+	select {}
 }
 
+func OnConnect(c *tcpx.Context) {
+	fmt.Println(fmt.Sprintf("connecting from remote host %s network %s", c.ClientIP(), c.UDPSession.RemoteAddr().Network()))
+}
 func OnClose(c *tcpx.Context) {
-	fmt.Println(fmt.Sprintf("connecting from remote host %s network %s has stoped", c.Conn.RemoteAddr().String(), c.Conn.RemoteAddr().Network()))
+	fmt.Println(fmt.Sprintf("connecting from remote host %s network %s has stoped", c.UDPSession.RemoteAddr().String(), c.UDPSession.RemoteAddr().Network()))
 }
 
 var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
@@ -62,17 +68,16 @@ func OnMessage(c *tcpx.Context) {
 	case 7:
 		var serviceA ServiceA
 		// block, e := packx.Unpack(c.Stream, &serviceA)
-		block, e := c.Bind(&serviceA)
+		block, e :=c.Bind(&serviceA)
 		fmt.Println(block, e)
 		c.Reply(8, "success")
 	case 9:
 		var serviceB ServiceB
 		//block, e := packx.Unpack(c.Stream, &serviceB)
-		block, e := c.Bind(&serviceB)
+		block, e :=c.Bind(&serviceB)
 		fmt.Println(block, e)
 		c.JSON(10, "success")
 	}
-
 }
 func SayHello(c *tcpx.Context) {
 	var messageFromClient string
@@ -146,3 +151,4 @@ func Middleware3(c *tcpx.Context) {
 func MiddlewareGlobal(c *tcpx.Context) {
 	fmt.Println("I am global middleware exampled by 'srv.UseGlobal(MiddlewareGlobal)'")
 }
+

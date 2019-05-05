@@ -16,7 +16,7 @@ func Debug(src interface{}) string {
 // Support %%
 func In(s string, arr []string) bool {
 	for _, v := range arr {
-		if strings.Contains(v, "%"){
+		if strings.Contains(v, "%") {
 			if strings.HasPrefix(v, "%") && strings.HasSuffix(v, "%") {
 				if strings.Contains(s, string(v[1:len(v)-1])) {
 					return true
@@ -30,11 +30,23 @@ func In(s string, arr []string) bool {
 					return true
 				}
 			}
-		}else {
+		} else {
 			if v == s {
 				return true
 			}
 		}
 	}
 	return false
+}
+
+// Defer eliminates all panic cases and handle panic reason by handlePanicError
+func Defer(f func(), handlePanicError ...func(interface{})) {
+	defer func() {
+		if e := recover(); e != nil {
+			for _, handler := range handlePanicError {
+				handler(e)
+			}
+		}
+	}()
+	f()
 }
