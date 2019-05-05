@@ -44,6 +44,7 @@ func main() {
 		panic(e)
 	}
 	conn.Write(buf)
+	conn.Write(buf)
 
 	//buf, e = packx.Pack(7, struct {
 	//	Username string `json:"username"`

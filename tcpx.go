@@ -402,20 +402,20 @@ func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ... interface{
 				defer tcpx.OnClose(ctx)
 			}
 			var e error
-			var n int
-			var buffer = make([]byte, 1024, 1024)
+			//var n int
+			//var buffer = make([]byte, 1024, 1024)
 			for {
-				n, e = conn.Read(buffer)
-				if e != nil {
-					if e == io.EOF {
-						break
-					}
-					fmt.Println(errorx.Wrap(e))
-					break
-				}
+				//n, e = conn.Read(buffer)
+				//if e != nil {
+				//	if e == io.EOF {
+				//		break
+				//	}
+				//	fmt.Println(errorx.Wrap(e))
+				//	break
+				//}
 				// client should send per block, rather than blocks bond together.
 				// if blocks are bond, only first block are useful.
-				ctx.Stream, e = tcpx.Packx.FirstBlockOfBytes(buffer[0:n])
+				ctx.Stream, e = tcpx.Packx.FirstBlockOf(conn)
 				if e != nil {
 					Logger.Println(e.Error())
 					// if byte stream invalid, conn will close
