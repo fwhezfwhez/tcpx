@@ -10,6 +10,9 @@ import (
 func main() {
 	srv := tcpx.NewTcpX(tcpx.JsonMarshaller{})
 
+	srv.BeforeExit(func(){
+		fmt.Println("server stops")
+	})
 	// If mode is DEBUG, error in framework will log with error spot and time in detail
 	// tcpx.SetLogMode(tcpx.DEBUG)
 

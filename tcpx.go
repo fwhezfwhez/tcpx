@@ -5,7 +5,10 @@ import (
 	"github.com/fwhezfwhez/errorx"
 	"github.com/xtaci/kcp-go"
 	"io"
+	"os"
+	"os/signal"
 	"reflect"
+	"syscall"
 
 	"net"
 )
@@ -391,7 +394,7 @@ func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ... interface{
 		if tcpx.OnConnect != nil {
 			tcpx.OnConnect(ctx)
 		}
-		go func (ctx *Context, tcpx *TcpX){
+		go func(ctx *Context, tcpx *TcpX) {
 			defer func() {
 				if e := recover(); e != nil {
 					Logger.Println(fmt.Sprintf("recover from panic %v", e))
@@ -427,7 +430,7 @@ func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ... interface{
 				handleMiddleware(ctx, tcpx)
 
 			}
-		}(ctx,tcpx)
+		}(ctx, tcpx)
 	}
 	return nil
 }
@@ -493,4 +496,22 @@ func handleMiddleware(ctx *Context, tcpx *TcpX) {
 		}
 		ctx.Reset()
 	}
+}
+
+// Before exist do ending jobs
+func (tcpx TcpX) BeforeExit(f ...func()) {
+	go func() {
+		defer func(){
+			if e:=recover();e!=nil {
+				fmt.Println(fmt.Sprintf("panic from %v", e))
+			}
+		}()
+		ch := make(chan os.Signal)
+		signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL, syscall.SIGQUIT)
+		fmt.Println("receive signal:", <-ch)
+		fmt.Println("prepare to stop server")
+		for _, handler := range f {
+			handler()
+		}
+	}()
 }
