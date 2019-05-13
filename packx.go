@@ -21,6 +21,7 @@ var packx = NewPackx(nil)
 // New a packx instance, specific a marshaller for communication.
 // If marshaller is nil, official jsonMarshaller is put to used.
 func NewPackx(marshaller Marshaller) *Packx {
+
 	if marshaller == nil {
 		marshaller = JsonMarshaller{}
 	}
@@ -33,7 +34,7 @@ func NewPackx(marshaller Marshaller) *Packx {
 // Src has not been marshaled yet.Whatever you put as src, it will be marshaled by packx.Marshaller.
 func (packx Packx) Pack(messageID int32, src interface{}, headers ... map[string]interface{}) ([]byte, error) {
 	if headers == nil || len(headers) == 0 {
-		return PackWithMarshaller(Message{MessageID: messageID, Header: nil, Body: src}, packx.Marshaller)
+		return PackWithMarshaller(Message{MessageID: messageID, Header: make(map[string]interface{}), Body: src}, packx.Marshaller)
 	}
 	var header = make(map[string]interface{}, 0)
 	for _, v := range headers {
@@ -47,7 +48,7 @@ func (packx Packx) Pack(messageID int32, src interface{}, headers ... map[string
 // PackWithBody is used for self design protocol
 func (packx Packx) PackWithBody(messageID int32, body []byte, headers ...map[string]interface{}) ([]byte, error) {
 	if headers == nil || len(headers) == 0 {
-		return PackWithMarshallerAndBody(Message{MessageID: messageID, Header: nil, Body: nil}, body, packx.Marshaller)
+		return PackWithMarshallerAndBody(Message{MessageID: messageID, Header: make(map[string]interface{}), Body: nil}, body, packx.Marshaller)
 	}
 	var header = make(map[string]interface{}, 0)
 	for _, v := range headers {
@@ -180,6 +181,12 @@ func (packx Packx) BodyBytesOf(stream []byte) ([]byte, error) {
 //
 // If users want to use this protocol across languages, here are the protocol details:
 // (they are ordered as list)
+// [0 0 0 24 0 0 0 1 0 0 0 6 0 0 0 6 2 1 19 18 13 11 11 3 1 23 12 132]
+// header: [0 0 0 24]
+// mesageID: [0 0 0 1]
+// headerLength, bodyLength [0 0 0 6]
+// header: [2 1 19 18 13 11]
+// body: [11 3 1 23 12 132]
 // [4]byte -- length             fixed_size,binary big endian encode
 // [4]byte -- messageID          fixed_size,binary big endian encode
 // [4]byte -- headerLength       fixed_size,binary big endian encode
