@@ -513,5 +513,6 @@ func (tcpx TcpX) BeforeExit(f ...func()) {
 		for _, handler := range f {
 			handler()
 		}
+		os.Exit(0)
 	}()
 }
