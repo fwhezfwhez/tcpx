@@ -62,7 +62,7 @@ func main() {
 		c.JSON(200, gin.H{"message": "success", "result": "ok", "ms": message})
 	})
 	s := &http.Server{
-		Addr:           ":7000",
+		Addr:           ":7001",
 		Handler:        cors.AllowAll().Handler(r),
 		ReadTimeout:    60 * time.Second,
 		WriteTimeout:   60 * time.Second,

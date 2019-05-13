@@ -31,11 +31,11 @@ type Param struct {
 }
 
 func main() {
-	// TestGoJSON()
+	TestGoJSON()
 	// TestGoProtoBuf()
 	// TestGoTOML()
 	// TestGoYAML()
-	TestGoXML()
+	// TestGoXML()
 }
 
 func TestGoProtoBuf() {
@@ -47,6 +47,7 @@ func TestGoProtoBuf() {
 	}
 
 	buf, e := packx.Pack(1, &userProto)
+
 	if e != nil {
 		panic(e)
 	}
@@ -58,7 +59,7 @@ func TestGoProtoBuf() {
 	if e != nil {
 		panic(e)
 	}
-	req, e := http.NewRequest("POST", "http://localhost:7000/tcpx/clients/stream/", bytes.NewReader(send))
+	req, e := http.NewRequest("POST", "http://localhost:7001/tcpx/clients/stream/", bytes.NewReader(send))
 	req.Header.Set("Content-Type", "application/json")
 	if e != nil {
 		panic(e)
@@ -82,6 +83,7 @@ func TestGoJSON() {
 		Username: "tcpx",
 	}
 	buf, e := packx.Pack(1, userJson)
+	fmt.Println(buf)
 	if e != nil {
 		panic(e)
 	}
@@ -93,12 +95,15 @@ func TestGoJSON() {
 	if e != nil {
 		panic(e)
 	}
-	req, e := http.NewRequest("POST", "http://localhost:7000/tcpx/clients/stream/", bytes.NewReader(send))
+	req, e := http.NewRequest("POST", "http://localhost:7001/tcpx/clients/stream/", bytes.NewReader(send))
 	req.Header.Set("Content-Type", "application/json")
 	if e != nil {
 		panic(e)
 	}
 	rsp, e := c.Do(req)
+	if e != nil {
+		panic(e)
+	}
 	if rsp != nil && rsp.Body != nil {
 		defer rsp.Body.Close()
 	}
@@ -128,7 +133,7 @@ func TestGoTOML() {
 	if e != nil {
 		panic(e)
 	}
-	req, e := http.NewRequest("POST", "http://localhost:7000/tcpx/clients/stream/", bytes.NewReader(send))
+	req, e := http.NewRequest("POST", "http://localhost:7001/tcpx/clients/stream/", bytes.NewReader(send))
 	req.Header.Set("Content-Type", "application/json")
 	if e != nil {
 		panic(e)
@@ -163,7 +168,7 @@ func TestGoYAML() {
 	if e != nil {
 		panic(e)
 	}
-	req, e := http.NewRequest("POST", "http://localhost:7000/tcpx/clients/stream/", bytes.NewReader(send))
+	req, e := http.NewRequest("POST", "http://localhost:7001/tcpx/clients/stream/", bytes.NewReader(send))
 	req.Header.Set("Content-Type", "application/json")
 	if e != nil {
 		panic(e)
@@ -199,12 +204,15 @@ func TestGoXML() {
 	if e != nil {
 		panic(e)
 	}
-	req, e := http.NewRequest("POST", "http://localhost:7000/tcpx/clients/stream/", bytes.NewReader(send))
+	req, e := http.NewRequest("POST", "http://localhost:7001/tcpx/clients/stream/", bytes.NewReader(send))
 	req.Header.Set("Content-Type", "application/json")
 	if e != nil {
 		panic(e)
 	}
 	rsp, e := c.Do(req)
+	if e != nil {
+		panic(e)
+	}
 	if rsp != nil && rsp.Body != nil {
 		defer rsp.Body.Close()
 	}
