@@ -1,0 +1,9 @@
+syntax = "proto3";
+package pb;
+
+message SayHelloRequest {
+    string username = 1;
+}
+message SayHelloReponse {
+    string message = 1;
+}
