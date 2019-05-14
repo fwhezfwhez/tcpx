@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
+	"tcpx/examples/sayHello/server/pb"
+
 	"github.com/fwhezfwhez/tcpx"
 	//"tcpx"
 )
@@ -10,7 +12,7 @@ import (
 func main() {
 	srv := tcpx.NewTcpX(tcpx.JsonMarshaller{})
 
-	srv.BeforeExit(func(){
+	srv.BeforeExit(func() {
 		fmt.Println("server stops")
 	})
 	// If mode is DEBUG, error in framework will log with error spot and time in detail
@@ -34,6 +36,7 @@ func main() {
 	srv.AddHandler(3, SayGoodBye)
 
 	srv.AddHandler(5, Middleware3, SayName)
+	srv.AddHandler(11, SayHelloProtobuf)
 	// tcp
 	go func() {
 		fmt.Println("tcp srv listen on 7171")
@@ -156,6 +159,27 @@ func SayName(c *tcpx.Context) {
 	}
 }
 
+func SayHelloProtobuf(c *tcpx.Context) {
+	var req pb.SayHelloRequest
+	var resp pb.SayHelloReponse
+	// proto.Unmarshal(nil, &req)
+	messageInfo, e := c.BindWithMarshaller(&req, tcpx.ProtobufMarshaller{})
+	if e!=nil {
+		fmt.Println(errorx.Wrap(e).Error())
+		return
+	}
+	fmt.Println("receive messageID:", messageInfo.MessageID)
+	fmt.Println("receive header:", messageInfo.Header)
+	fmt.Println("receive body:", messageInfo.Body)
+
+	var responseMessageID int32 = 12
+
+	resp.Message = "hello,I am tcpx"
+	e = c.ProtoBuf(responseMessageID, &resp)
+	if e != nil {
+		fmt.Println(e.Error())
+	}
+}
 func Middleware1(c *tcpx.Context) {
 	fmt.Println("I am middleware 1 exampled by 'srv.Use(\"middleware1\", Middleware1)'")
 }

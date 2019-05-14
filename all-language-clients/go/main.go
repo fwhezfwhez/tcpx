@@ -31,8 +31,8 @@ type Param struct {
 }
 
 func main() {
-	TestGoJSON()
-	// TestGoProtoBuf()
+	//TestGoJSON()
+	 TestGoProtoBuf()
 	// TestGoTOML()
 	// TestGoYAML()
 	// TestGoXML()

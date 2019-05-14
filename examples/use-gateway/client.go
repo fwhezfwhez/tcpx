@@ -19,7 +19,7 @@ import (
 // MarshalName ranges in json,xml,toml,yaml,protobuf
 func main() {
 	//// valid
-	ExampleJSON()
+	// ExampleJSON()
 
 	////// valid
 	//ExampleXML()
@@ -31,7 +31,7 @@ func main() {
 	//ExampleYAML()
 	//
 	////// valid
-	//ExampleProtobuf()
+	ExampleProtobuf()
 }
 
 func ExampleJSON() {

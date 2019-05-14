@@ -4,45 +4,66 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
+	"io"
+	"tcpx/examples/sayHello/client/pb"
+
 	"github.com/fwhezfwhez/tcpx"
 	"net"
 	//"tcpx"
 )
 
 var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
+var packxProto = tcpx.NewPackx(tcpx.ProtobufMarshaller{})
 
 func main() {
 	conn, err := net.Dial("tcp", "localhost:7171")
 	if err != nil {
 		panic(err)
 	}
-	received := Receive(conn)
 	go func() {
 		for {
-			buf := <-received
-			var message tcpx.Message
-			var receivedString string
-			//fmt.Println(buf)
-			message, e := packx.Unpack(buf, &receivedString)
+			buf ,e :=packxProto.FirstBlockOf(conn)
 			if e != nil {
+				if e == io.EOF {
+					break
+				}
 				panic(errorx.Wrap(e))
 			}
+			//var receivedString string
+			////fmt.Println(buf)
+			//message, e := packx.Unpack(buf, &receivedString)
+			//if e != nil {
+			//	panic(errorx.Wrap(e))
+			//}
+			//fmt.Println("收到服务端消息块:", smartPrint(message))
+			//fmt.Println("服务端消息:", receivedString)
+			var resp pb.SayHelloReponse
+			message, e := packxProto.Unpack(buf, &resp)
+
 			fmt.Println("收到服务端消息块:", smartPrint(message))
-			fmt.Println("服务端消息:", receivedString)
+			fmt.Println("服务端消息:", resp)
 		}
 	}()
 
 	var buf []byte
 	var e error
-	buf, e = packx.Pack(5, "hello,I am client xiao ming", map[string]interface{}{
-		"api": "/tcpx/client1/",
+	buf, e = packxProto.Pack(11, &pb.SayHelloRequest{
+		Username: "ft",
 	})
 	if e != nil {
 		panic(e)
 	}
-
-	fmt.Println(buf)
 	conn.Write(buf)
+
+	//buf, e = packx.Pack(5, "hello,I am client xiao ming", map[string]interface{}{
+	//	"api": "/tcpx/client1/",
+	//})
+	//if e != nil {
+	//	panic(e)
+	//}
+	//
+	//fmt.Println(buf)
+	//conn.Write(buf)
 
 	//buf, e = packx.Pack(7, struct {
 	//	Username string `json:"username"`
@@ -69,21 +90,6 @@ func main() {
 	select {}
 }
 
-func Receive(conn net.Conn) <-chan []byte {
-	var received = make(chan []byte, 200)
-	go func() {
-		for {
-			buf, e := packx.FirstBlockOf(conn)
-			if e != nil {
-				fmt.Println(e.Error())
-				break
-			}
-			received <- buf
-			continue
-		}
-	}()
-	return received
-}
 
 func smartPrint(src interface{}) string {
 	buf, _ := json.MarshalIndent(src, "  ", "  ")
