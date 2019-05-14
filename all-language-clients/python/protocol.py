@@ -47,11 +47,12 @@ class TCPXProtocol(object):
 
         _body = data[16+_header_length:16+_header_length+_body_length]
         if self.serializer == 'json':
-            message.body = json.loads(_body.decode('utf-8'))
+            response = json.loads(_body.decode('utf-8'))
+            message.body = response
         elif self.serializer == "protobuf":
             response.ParseFromString(_body)
             message.body = response
         else:
              raise Exception('serializer only support json, protobuf')
-
+        
         return message
