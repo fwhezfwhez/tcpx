@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
+	"github.com/fwhezfwhez/tcpx/examples/sayHello/client/pb"
 	"io"
-	"tcpx/examples/sayHello/client/pb"
 
 	"github.com/fwhezfwhez/tcpx"
 	"net"
@@ -22,7 +22,7 @@ func main() {
 	}
 	go func() {
 		for {
-			buf ,e :=packxProto.FirstBlockOf(conn)
+			buf, e := packxProto.FirstBlockOf(conn)
 			if e != nil {
 				if e == io.EOF {
 					break
@@ -89,7 +89,6 @@ func main() {
 
 	select {}
 }
-
 
 func smartPrint(src interface{}) string {
 	buf, _ := json.MarshalIndent(src, "  ", "  ")
