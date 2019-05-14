@@ -33,7 +33,7 @@ class TCPXProtocol(object):
 
         return _data
 
-    def unpack(self, data):
+    def unpack(self, data, response=None):
         message = TCPXMessage()
 
         _packet = data[4:]
@@ -47,6 +47,7 @@ class TCPXProtocol(object):
         if self.serializer == 'json':
             message.body = json.loads(_body.decode('utf-8'))
         else:
-            pass
+            response.ParseFromString(_body)
+            message.body = response
 
         return message
