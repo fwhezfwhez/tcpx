@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
-	"tcpx/examples/sayHello/server/pb"
+	"github.com/fwhezfwhez/tcpx/examples/sayHello/server/pb"
 
 	"github.com/fwhezfwhez/tcpx"
 	//"tcpx"
@@ -164,7 +164,7 @@ func SayHelloProtobuf(c *tcpx.Context) {
 	var resp pb.SayHelloReponse
 	// proto.Unmarshal(nil, &req)
 	messageInfo, e := c.BindWithMarshaller(&req, tcpx.ProtobufMarshaller{})
-	if e!=nil {
+	if e != nil {
 		fmt.Println(errorx.Wrap(e).Error())
 		return
 	}
