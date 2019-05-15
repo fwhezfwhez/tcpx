@@ -47,6 +47,15 @@ Golang has greate support of tcp protocol in official libraries, but users still
 ## 1. Start
 `go get github.com/fwhezfwhez/tcpx`
 
+#### dependency:
+if you want to run program in this repo,you should prepare protoc,proto-gen-go environment.
+It's good to compile yourself from these repos,but there is already release versions referring to their doc.
+Make sure run `protoc --version` available.
+
+**protoc**: https://github.com/golang/protobuf
+**proto-gen-go**:https://github.com/golang/protobuf/tree/master/protoc-gen-go
+
+
 ## 2. Example
 https://github.com/fwhezfwhez/tcpx/tree/master/examples/sayHello
 
