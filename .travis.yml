@@ -1,19 +1,32 @@
 language: go
+
 go:
   - 1.9.x
   - 1.10.x
   - 1.11.x
+
 env:
   - GOARCH=amd64
   - GOARCH=386
+  - CODECOV_TOKEN="7bc84064-5397-473d-991a-c34c91547e8a"
+
 sudo: true
+
 go_import_path: github.com/fwhezfwhez/tcpx
+
 before_install:
+  - go get -t -v ./...
   - go get github.com/fwhezfwhez/errorx
   - go get github.com/pelletier/go-toml
   - go get github.com/golang/protobuf/proto
   - go get gopkg.in/yaml.v2
+
 script:
+  - go test -race -coverprofile=coverage.txt -covermode=atomic
   - go test ./
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
 notifications:
   email: false
