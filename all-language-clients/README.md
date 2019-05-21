@@ -3,6 +3,8 @@ all-language-clients provide realizations of building tcpx's expected binary str
 ## All clients pack interface.
 #### golang
 golang pack has been realized, it can be referred.
+
+https://github.com/fwhezfwhez/tcpx/blob/master/packx.go
 ```go
 type Packx interface{
     Pack(messageID int32, src interface{}, header map[string]interface{}) ([]byte,error)
@@ -13,18 +15,48 @@ func main() {
     type User struct{
         Username string `json:"username"`
     }
+    // request payload
+    var payload = User{"tcpx"}
+    // packx
     packx := tcpx.NewPackx(tcpx.JsonMarshaller)
-    buf,_ :=packx.Pack(1, User{"tcpx"})
-    var us User
-    packx.UnPack(buf, &us)
-    // {Username: "tcpx"}
-    fmt.Println(us)
+    // pack
+    buf,_ :=packx.Pack(1, payload)
+    // response payload
+    var payload2 User
+    packx.UnPack(buf, &payload2)
+    // print {Username: "tcpx"}
+    fmt.Println(payload2)
 }
 ```
-```java
-public interface Packx{
 
-}
+#### python
+https://github.com/fwhezfwhez/tcpx/blob/master/all-language-clients/python/protocol.py
+```python
+    # payload
+    payload = 'hello'
+
+    # message
+    message = TCPXMessage()
+    message.id = 5
+    message.header = {
+        'header': '/tcpx/client1'
+    }
+    message.body = payload
+
+    # tcpx instance
+    tcpx_protocol = TCPXProtocol('json')
+
+    # tcpx pack
+    packed_data = tcpx_protocol.pack(message)
+    
+    # tcpx unpack
+    message2 = TCPXMessage()
+    payload2 = ''
+    message2 = tcpx_protocol.unpack(packed_data, payload2)
+    
+    # print
+    print(message2)
+    print(payload2)
 ```
 
 Validating server are provided too.

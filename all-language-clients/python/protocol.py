@@ -19,9 +19,11 @@ class TCPXProtocol(object):
 
         if self.serializer == 'json':
             _body = bytes(json.dumps(body), 'utf-8')
-        else:
+        elif self.serializer == "protobuf":
             _body = body.SerializeToString()
-
+        else:
+            raise Exception('serializer only support json, protobuf')
+            
         _id = id.to_bytes(4, 'big')
         _header = bytes(json.dumps(header), 'utf-8')
         _header_length = len(_header).to_bytes(4, 'big')
@@ -33,7 +35,7 @@ class TCPXProtocol(object):
 
         return _data
 
-    def unpack(self, data):
+    def unpack(self, data, response=None):
         message = TCPXMessage()
 
         _packet = data[4:]
@@ -45,8 +47,12 @@ class TCPXProtocol(object):
 
         _body = data[16+_header_length:16+_header_length+_body_length]
         if self.serializer == 'json':
-            message.body = json.loads(_body.decode('utf-8'))
+            response = json.loads(_body.decode('utf-8'))
+            message.body = response
+        elif self.serializer == "protobuf":
+            response.ParseFromString(_body)
+            message.body = response
         else:
-            pass
-
+             raise Exception('serializer only support json, protobuf')
+        
         return message
