@@ -27,3 +27,5 @@ This example provides tcp, udp, and kcp server side examples.But only tcp client
 
 `go run main.go`
 
+## ATTENTION
+/examples/sayHello will changed with developing to test new function, some old tips will remain as note.

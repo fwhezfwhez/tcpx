@@ -83,9 +83,18 @@ func (packx Packx) FirstBlockOf(r io.Reader) ([]byte, error) {
 	return UnpackToBlockFromReader(r)
 }
 
+// Since FirstBlockOf has nothing to do with packx instance, so make it alone,
+// for old usage remaining useful, old packx.FirstBlockOf is still useful
+func FirstBlockOf(r io.Reader) ([]byte, error) {
+	return UnpackToBlockFromReader(r)
+}
+
 // a stream from a buffer which can be apart by protocol.
 // FirstBlockOfBytes helps tear apart the first block []byte from a []byte buffer
 func (packx Packx) FirstBlockOfBytes(buffer []byte) ([]byte, error) {
+	return FirstBlockOfBytes(buffer)
+}
+func FirstBlockOfBytes(buffer []byte) ([]byte, error) {
 	if len(buffer) < 16 {
 		return nil, errors.New(fmt.Sprintf("require buffer length more than 16 but got %d", len(buffer)))
 	}
@@ -100,6 +109,11 @@ func (packx Packx) FirstBlockOfBytes(buffer []byte) ([]byte, error) {
 // messageID of a stream.
 // Use this to choose which struct for unpacking.
 func (packx Packx) MessageIDOf(stream []byte) (int32, error) {
+	return MessageIDOf(stream)
+}
+// messageID of a stream.
+// Use this to choose which struct for unpacking.
+func MessageIDOf(stream []byte) (int32, error) {
 	if len(stream) < 8 {
 		return 0, errors.New(fmt.Sprintf("stream lenth should be bigger than 8"))
 	}
@@ -110,6 +124,11 @@ func (packx Packx) MessageIDOf(stream []byte) (int32, error) {
 // Length of the stream starting validly.
 // Length doesn't include length flag itself, it refers to a valid message length after it.
 func (packx Packx) LengthOf(stream []byte) (int32, error) {
+	return LengthOf(stream)
+}
+// Length of the stream starting validly.
+// Length doesn't include length flag itself, it refers to a valid message length after it.
+func LengthOf(stream []byte) (int32, error) {
 	if len(stream) < 4 {
 		return 0, errors.New(fmt.Sprintf("stream lenth should be bigger than 4"))
 	}
@@ -117,14 +136,26 @@ func (packx Packx) LengthOf(stream []byte) (int32, error) {
 	return int32(length), nil
 }
 
+// Header length of a stream received
 func (packx Packx) HeaderLengthOf(stream []byte) (int32, error) {
+	return HeaderLengthOf(stream)
+}
+// Header length of a stream received
+func HeaderLengthOf(stream []byte) (int32, error) {
 	if len(stream) < 12 {
 		return 0, errors.New(fmt.Sprintf("stream lenth should be bigger than 12"))
 	}
 	headerLength := binary.BigEndian.Uint32(stream[8:12])
 	return int32(headerLength), nil
 }
+
+// Body length of a stream received
 func (packx Packx) BodyLengthOf(stream []byte) (int32, error) {
+	return BodyLengthOf(stream)
+}
+
+// Body length of a stream received
+func BodyLengthOf(stream []byte) (int32, error) {
 	if len(stream) < 16 {
 		return 0, errors.New(fmt.Sprintf("stream lenth should be bigger than %d", 16))
 	}
@@ -134,7 +165,11 @@ func (packx Packx) BodyLengthOf(stream []byte) (int32, error) {
 
 // Header bytes of a block
 func (packx Packx) HeaderBytesOf(stream []byte) ([]byte, error) {
-	headerLen, e := packx.HeaderLengthOf(stream)
+	return HeaderBytesOf(stream)
+}
+// Header bytes of a block
+func  HeaderBytesOf(stream []byte) ([]byte, error) {
+	headerLen, e := HeaderLengthOf(stream)
 	if e != nil {
 		return nil, e
 	}
@@ -147,8 +182,13 @@ func (packx Packx) HeaderBytesOf(stream []byte) ([]byte, error) {
 
 // header of a block
 func (packx Packx) HeaderOf(stream []byte) (map[string]interface{}, error) {
+	return HeaderOf(stream)
+}
+
+// header of a block
+func  HeaderOf(stream []byte) (map[string]interface{}, error) {
 	var header map[string]interface{}
-	headerBytes, e := packx.HeaderBytesOf(stream)
+	headerBytes, e := HeaderBytesOf(stream)
 	if e != nil {
 		return nil, errorx.Wrap(e)
 	}
@@ -161,11 +201,16 @@ func (packx Packx) HeaderOf(stream []byte) (map[string]interface{}, error) {
 
 // body bytes of a block
 func (packx Packx) BodyBytesOf(stream []byte) ([]byte, error) {
-	headerLen, e := packx.HeaderLengthOf(stream)
+	return BodyBytesOf(stream)
+}
+
+// body bytes of a block
+func BodyBytesOf(stream []byte) ([]byte, error) {
+	headerLen, e := HeaderLengthOf(stream)
 	if e != nil {
 		return nil, e
 	}
-	bodyLen, e := packx.BodyLengthOf(stream)
+	bodyLen, e := BodyLengthOf(stream)
 	if e != nil {
 		return nil, e
 	}

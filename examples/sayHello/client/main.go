@@ -4,31 +4,31 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
-	"github.com/fwhezfwhez/tcpx/examples/sayHello/client/pb"
-	"io"
-
 	"github.com/fwhezfwhez/tcpx"
+	"github.com/fwhezfwhez/tcpx/examples/sayHello/client/pb"
 	"net"
 	//"tcpx"
 )
 
-var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
-var packxProto = tcpx.NewPackx(tcpx.ProtobufMarshaller{})
+// var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
+// var packxProto = tcpx.NewPackx(tcpx.ProtobufMarshaller{})
 
 func main() {
 	conn, err := net.Dial("tcp", "localhost:7171")
+
 	if err != nil {
 		panic(err)
 	}
 	go func() {
 		for {
-			buf, e := packxProto.FirstBlockOf(conn)
+			buf, e := tcpx.FirstBlockOf(conn)
 			if e != nil {
-				if e == io.EOF {
-					break
-				}
+				//if e == io.EOF {
+				//	break
+				//}
 				panic(errorx.Wrap(e))
 			}
+			fmt.Println(buf)
 			//var receivedString string
 			////fmt.Println(buf)
 			//message, e := packx.Unpack(buf, &receivedString)
@@ -38,7 +38,7 @@ func main() {
 			//fmt.Println("收到服务端消息块:", smartPrint(message))
 			//fmt.Println("服务端消息:", receivedString)
 			var resp pb.SayHelloReponse
-			message, e := packxProto.Unpack(buf, &resp)
+			message, e := tcpx.UnpackWithMarshallerName(buf, &resp, "protobuf")
 
 			fmt.Println("收到服务端消息块:", smartPrint(message))
 			fmt.Println("服务端消息:", resp)
@@ -47,14 +47,16 @@ func main() {
 
 	var buf []byte
 	var e error
-	buf, e = packxProto.Pack(11, &pb.SayHelloRequest{
-		Username: "ft",
-	})
+	buf, e = tcpx.PackWithMarshallerName(tcpx.Message{
+		MessageID: 11,
+		Body: &pb.SayHelloRequest{
+			Username: "ft",
+		},
+	}, "protobuf")
 	if e != nil {
 		panic(e)
 	}
 	conn.Write(buf)
-
 	//buf, e = packx.Pack(5, "hello,I am client xiao ming", map[string]interface{}{
 	//	"api": "/tcpx/client1/",
 	//})

@@ -175,6 +175,7 @@ func SayHelloProtobuf(c *tcpx.Context) {
 	var responseMessageID int32 = 12
 
 	resp.Message = "hello,I am tcpx"
+	fmt.Println("reply:", resp)
 	e = c.ProtoBuf(responseMessageID, &resp)
 	if e != nil {
 		fmt.Println(e.Error())
