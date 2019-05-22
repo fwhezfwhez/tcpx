@@ -179,7 +179,7 @@ func TestContext_JSON(t *testing.T) {
 	go func() {
 		<-serverStart
 
-		conn, err := net.Dial("tcp", "localhost:7000")
+		conn, err := net.Dial("tcp", "localhost:7001")
 		if err != nil {
 			testResult <- errorx.Wrap(err)
 			fmt.Println(errorx.Wrap(err).Error())
@@ -237,7 +237,7 @@ func TestContext_JSON(t *testing.T) {
 			time.Sleep(time.Second * 10)
 			serverStart <- 1
 		}()
-		e := srv.ListenAndServe("tcp", ":7000")
+		e := srv.ListenAndServe("tcp", ":7001")
 		if e != nil {
 			testResult <- errorx.Wrap(e)
 			fmt.Println(e.Error())
@@ -258,7 +258,7 @@ func TestContext_ProtoBuf(t *testing.T) {
 	go func() {
 		<-serverStart
 
-		conn, err := net.Dial("tcp", "localhost:7000")
+		conn, err := net.Dial("tcp", "localhost:7002")
 		if err != nil {
 			testResult <- errorx.Wrap(err)
 			fmt.Println(errorx.Wrap(err).Error())
@@ -311,7 +311,7 @@ func TestContext_ProtoBuf(t *testing.T) {
 			time.Sleep(time.Second * 10)
 			serverStart <- 1
 		}()
-		e := srv.ListenAndServe("tcp", ":7000")
+		e := srv.ListenAndServe("tcp", ":7002")
 		if e != nil {
 			testResult <- errorx.Wrap(e)
 			fmt.Println(e.Error())
