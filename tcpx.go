@@ -143,6 +143,7 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 	defer func() {
 		if e := recover(); e != nil {
 			Logger.Println(fmt.Sprintf("recover from panic %v", e))
+			return
 		}
 	}()
 	listener, err := net.Listen(network, addr)

@@ -17,6 +17,12 @@ type Packx struct {
 
 // a package scoped packx instance
 var packx = NewPackx(nil)
+var PackJSON = NewPackx(JsonMarshaller{})
+var PackTOML = NewPackx(TomlMarshaller{})
+var PackXML = NewPackx(XmlMarshaller{})
+var PackYAML = NewPackx(YamlMarshaller{})
+var PackProtobuf = NewPackx(ProtobufMarshaller{})
+
 
 // New a packx instance, specific a marshaller for communication.
 // If marshaller is nil, official jsonMarshaller is put to used.
