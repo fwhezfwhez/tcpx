@@ -3,9 +3,9 @@ package tcpx
 import (
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
+	"github.com/fwhezfwhez/tcpx/examples/sayHello/client/pb"
 	"github.com/xtaci/kcp-go"
 	"net"
-	"tcpx/examples/sayHello/client/pb"
 	"testing"
 	"time"
 )
