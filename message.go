@@ -21,7 +21,5 @@ func (msg Message) Get(key string) interface{} {
 // if you should never operate the header in multiple goroutines, it's better to design a context yourself per request
 // rather than straightly use message.Header.
 func (msg *Message) Set(k string, v interface{}) {
-	if msg.Header == nil {
-		msg.Header[k] = v
-	}
+	msg.Header[k] = v
 }

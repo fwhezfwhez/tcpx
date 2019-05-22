@@ -3,7 +3,6 @@ package tcpx
 import (
 	"log"
 	"os"
-	"sync"
 )
 
 const (
@@ -16,6 +15,13 @@ type Log struct {
 	Mode   int
 }
 
+func (l *Log) SetLogMode(mode int) {
+	l.Mode = mode
+}
+func (l *Log) SetLogFlags(flags int) {
+	l.Logger.SetFlags(flags)
+}
+
 func (l Log) Println(info ...interface{}) {
 	if l.Mode == DEBUG {
 		l.Logger.Println(info ...)
@@ -26,7 +32,6 @@ var Logger = Log{
 	Logger: log.New(os.Stderr, "[tcpx] ", log.LstdFlags|log.Llongfile),
 	Mode:   DEBUG,
 }
-var m sync.RWMutex
 
 func SetLogMode(mode int) {
 	Logger.Mode = mode
