@@ -83,6 +83,8 @@ func (mux *Mux) AnchorIndexOfMessageID(messageID int32) int {
 }
 
 // get anchor index of a middleware
+//
+// Deprecated: unused in project, but it can be used in your personal test.
 func (mux *Mux) AnchorIndoexOfMiddleware(middlewareKey string) (int, int) {
 	mux.Mutex.RLock()
 	defer mux.Mutex.RUnlock()
@@ -171,7 +173,9 @@ func (mux *Mux) AddGlobalMiddleware(handlers ... func(c *Context)) {
 // middlewares regardless use or unUse will be exec.
 //
 // but,
-// messageID's self-related middleware will be ignored
+// messageID's self-related middleware will be ignored.
+//
+// Deprecated: unused in project, but it can be used in your personal test.
 func (mux *Mux) execAllMiddlewares(ctx *Context) {
 	for _, handler := range mux.GlobalMiddlewares {
 		handler(ctx)
@@ -191,6 +195,8 @@ func (mux *Mux) execAllMiddlewares(ctx *Context) {
 }
 
 // exec middlewares added by srv.Add(1, middleware1, middleware2, handler)
+//
+// Deprecated: unused in project, but it can be used in your personal test.
 func (mux *Mux) execMessageIDMiddlewares(ctx *Context, messageID int32) {
 	for _, handler := range mux.GlobalMiddlewares {
 		handler(ctx)
@@ -230,6 +236,9 @@ func (mux *Mux) execMessageIDMiddlewares(ctx *Context, messageID int32) {
 
 }
 
+// exec all global middlewares
+//
+// Deprecated: unused in project, but it can be used in your personal test.
 func (mux *Mux) execGlobalMiddlewares(ctx *Context) {
 	for _, handler := range mux.GlobalMiddlewares {
 		handler(ctx)

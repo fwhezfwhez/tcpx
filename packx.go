@@ -86,7 +86,7 @@ func (packx Packx) Unpack(stream []byte, dest interface{}) (Message, error) {
 // a stream from a reader can be apart by protocol.
 // FirstBlockOf helps tear apart the first block []byte from reader
 func (packx Packx) FirstBlockOf(r io.Reader) ([]byte, error) {
-	return UnpackToBlockFromReader(r)
+	return FirstBlockOf(r)
 }
 
 // Since FirstBlockOf has nothing to do with packx instance, so make it alone,
@@ -410,7 +410,6 @@ func UnpackToBlockFromReader(reader io.Reader) ([]byte, error) {
 
 	return append(info, content ...), nil
 }
-
 // This method is used to
 func PackWithMarshallerAndBody(message Message, body []byte, marshaller Marshaller) ([]byte, error) {
 	if marshaller == nil {

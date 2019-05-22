@@ -3,6 +3,7 @@ package tcpx
 import (
 	"encoding/xml"
 	"fmt"
+	"github.com/fwhezfwhez/errorx"
 	"testing"
 )
 
@@ -16,7 +17,7 @@ func TestJsonMarshaller(t *testing.T) {
 func TestXmlMarshaller(t *testing.T) {
 	fmt.Println(XmlMarshaller{}.MarshalName() == "xml")
 	type User struct {
-		XMLName   xml.Name `xml:"xml"`
+		XMLName  xml.Name `xml:"xml"`
 		Username string   `xml:"username"`
 	}
 	buf, e := XmlMarshaller{}.Marshal(User{Username: "Ft"})
@@ -39,9 +40,9 @@ func TestTOMLYAMLMarshaller(t *testing.T) {
 	fmt.Println(TomlMarshaller{}.MarshalName() == "toml")
 	fmt.Println(YamlMarshaller{}.MarshalName() == "yaml")
 	type User struct {
-		Username string   `toml:"username" yaml:"username"`
+		Username string `toml:"username" yaml:"username"`
 	}
-	buf,e :=TomlMarshaller{}.Marshal(User{"ft"})
+	buf, e := TomlMarshaller{}.Marshal(User{"ft"})
 	fmt.Println(string(buf))
 	if e != nil {
 		fmt.Println(e.Error())
@@ -57,7 +58,7 @@ func TestTOMLYAMLMarshaller(t *testing.T) {
 		return
 	}
 
-	buf,e =YamlMarshaller{}.Marshal(User{"ft"})
+	buf, e = YamlMarshaller{}.Marshal(User{"ft"})
 	if e != nil {
 		fmt.Println(e.Error())
 		t.Fail()
@@ -72,4 +73,44 @@ func TestTOMLYAMLMarshaller(t *testing.T) {
 		t.Fail()
 		return
 	}
+}
+
+func TestGetMarshallerByMarshalName(t *testing.T) {
+	jsonMarshaller, e := GetMarshallerByMarshalName("json")
+	if e != nil {
+		fmt.Println(errorx.Wrap(e).Error())
+		t.Fail()
+		return
+	}
+	xmlMarshaller, e := GetMarshallerByMarshalName("xml")
+	if e != nil {
+		fmt.Println(errorx.Wrap(e).Error())
+		t.Fail()
+		return
+	}
+	tomlMarshaller, e := GetMarshallerByMarshalName("toml")
+	if e != nil {
+		fmt.Println(errorx.Wrap(e).Error())
+		t.Fail()
+		return
+	}
+	yamlMarshaller, e := GetMarshallerByMarshalName("yaml")
+	if e != nil {
+		fmt.Println(errorx.Wrap(e).Error())
+		t.Fail()
+		return
+	}
+	_, e = GetMarshallerByMarshalName("xxx")
+	if e == nil {
+		fmt.Println("should throw err but receive nothing")
+		t.Fail()
+		return
+	}
+	fmt.Println(
+		jsonMarshaller.MarshalName(),
+		xmlMarshaller.MarshalName(),
+		tomlMarshaller.MarshalName(),
+		yamlMarshaller.MarshalName(),
+	)
+
 }
