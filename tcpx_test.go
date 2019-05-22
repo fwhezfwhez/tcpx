@@ -233,13 +233,16 @@ func TestTcpX_KCP_Middleware_Abort_Next(t *testing.T) {
 		// global middleware
 		srv.UseGlobal(func(c *Context) {
 			middlewareOrder = append(middlewareOrder, 1)
+			fmt.Println("pass global")
 		})
 		// anchor middleware
 		srv.Use("anchor1", func(c *Context) {
 			middlewareOrder = append(middlewareOrder, 2)
+			fmt.Println("pass anchor1")
 			c.Next()
 		}, "anchor2", func(c *Context) {
 			middlewareOrder = append(middlewareOrder, 3)
+			fmt.Println("pass anchor2")
 			c.Abort()
 			time.Sleep(2 * time.Second)
 			fmt.Println(middlewareOrder)
@@ -249,6 +252,7 @@ func TestTcpX_KCP_Middleware_Abort_Next(t *testing.T) {
 			}
 			testResult <- nil
 		}, "anchor3", func(c *Context) {
+			fmt.Println("should not pass anchor 3, but passed")
 			middlewareOrder = append(middlewareOrder, 4)
 		})
 		// router middleware
