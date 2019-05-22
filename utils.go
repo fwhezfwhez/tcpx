@@ -2,13 +2,18 @@ package tcpx
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/fwhezfwhez/errorx"
 	"strings"
 )
 
 type H map[string]interface{}
 
 func Debug(src interface{}) string {
-	buf, _ := json.MarshalIndent(src, "  ", "  ")
+	buf, e := json.MarshalIndent(src, "  ", "  ")
+	if e != nil {
+		fmt.Println(errorx.Wrap(e).Error())
+	}
 	return string(buf)
 }
 

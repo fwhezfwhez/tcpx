@@ -221,7 +221,7 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 						ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
 						// anchor middleware
 						messageIDAnchorIndex := tcpx.Mux.AnchorIndexOfMessageID(messageID)
-						for _, v := range tcpx.Mux.MiddlewareAnchorMap {
+						for _, v := range tcpx.Mux.MiddlewareAnchors {
 							if messageIDAnchorIndex > v.AnchorIndex && messageIDAnchorIndex <= v.ExpireAnchorIndex {
 								ctx.handlers = append(ctx.handlers, v.Middleware)
 							}
@@ -331,11 +331,18 @@ func (tcpx *TcpX) ListenAndServeUDP(network, addr string, maxBufferSize ...int) 
 					ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
 					// anchor middleware
 					messageIDAnchorIndex := tcpx.Mux.AnchorIndexOfMessageID(messageID)
-					for _, v := range tcpx.Mux.MiddlewareAnchorMap {
+					//for _, v := range tcpx.Mux.MiddlewareAnchorMap {
+					//	if messageIDAnchorIndex > v.AnchorIndex && messageIDAnchorIndex <= v.ExpireAnchorIndex {
+					//		ctx.handlers = append(ctx.handlers, v.Middleware)
+					//	}
+					//}
+
+					for _, v := range tcpx.Mux.MiddlewareAnchors {
 						if messageIDAnchorIndex > v.AnchorIndex && messageIDAnchorIndex <= v.ExpireAnchorIndex {
 							ctx.handlers = append(ctx.handlers, v.Middleware)
 						}
 					}
+
 					// self-related middleware
 					ctx.handlers = append(ctx.handlers, tcpx.Mux.MessageIDSelfMiddleware[messageID]...)
 					// handler
@@ -482,11 +489,21 @@ func handleMiddleware(ctx *Context, tcpx *TcpX) {
 		ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
 		// anchor middleware
 		messageIDAnchorIndex := tcpx.Mux.AnchorIndexOfMessageID(messageID)
-		for _, v := range tcpx.Mux.MiddlewareAnchorMap {
+		// ######## BUG REPORT ########
+		// old: anchor type middleware may be added unordered.
+		// ############################
+		//for _, v := range tcpx.Mux.MiddlewareAnchorMap {
+		//	if messageIDAnchorIndex > v.AnchorIndex && messageIDAnchorIndex <= v.ExpireAnchorIndex {
+		//		ctx.handlers = append(ctx.handlers, v.Middleware)
+		//	}
+		//}
+		// new:
+		for _, v := range tcpx.Mux.MiddlewareAnchors {
 			if messageIDAnchorIndex > v.AnchorIndex && messageIDAnchorIndex <= v.ExpireAnchorIndex {
 				ctx.handlers = append(ctx.handlers, v.Middleware)
 			}
 		}
+
 		// self-related middleware
 		ctx.handlers = append(ctx.handlers, tcpx.Mux.MessageIDSelfMiddleware[messageID]...)
 		// handler
@@ -502,8 +519,8 @@ func handleMiddleware(ctx *Context, tcpx *TcpX) {
 // Before exist do ending jobs
 func (tcpx TcpX) BeforeExit(f ...func()) {
 	go func() {
-		defer func(){
-			if e:=recover();e!=nil {
+		defer func() {
+			if e := recover(); e != nil {
 				fmt.Println(fmt.Sprintf("panic from %v", e))
 			}
 		}()

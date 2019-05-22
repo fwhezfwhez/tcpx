@@ -34,7 +34,7 @@ func main() {
 
 	var buf []byte
 	var e error
-	buf, e = packx.Pack(5, "hello,I am client xiao ming", map[string]interface{}{
+	buf, e = packx.Pack(3, "hello,I am client xiao ming", map[string]interface{}{
 		"api": "/tcpx/client1/",
 	})
 	if e != nil {
