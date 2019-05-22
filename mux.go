@@ -28,6 +28,7 @@ type Mux struct {
 	GlobalMiddlewares       []func(ctx *Context)
 	MessageIDSelfMiddleware map[int32][]func(ctx *Context)
 
+	// expired anchors will not remove from it
 	MiddlewareAnchors   []MiddlewareAnchor
 	MiddlewareAnchorMap map[string]MiddlewareAnchor
 

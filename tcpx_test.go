@@ -255,6 +255,7 @@ func TestTcpX_KCP_Middleware_Abort_Next(t *testing.T) {
 			fmt.Println("should not pass anchor 3, but passed")
 			middlewareOrder = append(middlewareOrder, 4)
 		})
+
 		// router middleware
 		// no chance to exec since anchor abort the chain
 		srv.AddHandler(1, func(c *Context) {
