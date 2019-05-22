@@ -160,12 +160,12 @@ func TestTcpX_UDP_Middleware_UnUse(t *testing.T) {
 		srv.Use("anchor1", func(c *Context) {
 			middlewareOrder = append(middlewareOrder, 2)
 		})
-		// router middleware
-		srv.AddHandler(1, func(c *Context) {
-			middlewareOrder = append(middlewareOrder, 3)
-		}, func(c *Context) {
-			c.Reply(10086, "hello, I'm server")
-		})
+		//// router middleware
+		//srv.AddHandler(1, func(c *Context) {
+		//	middlewareOrder = append(middlewareOrder, 3)
+		//}, func(c *Context) {
+		//	c.Reply(10086, "hello, I'm server")
+		//})
 
 		srv.UnUse("anchor1")
 		srv.AddHandler(2, func(c *Context) {

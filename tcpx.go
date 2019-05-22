@@ -336,6 +336,7 @@ func (tcpx *TcpX) ListenAndServeUDP(network, addr string, maxBufferSize ...int) 
 					//		ctx.handlers = append(ctx.handlers, v.Middleware)
 					//	}
 					//}
+
 					for _, v := range tcpx.Mux.MiddlewareAnchors {
 						if messageIDAnchorIndex > v.AnchorIndex && messageIDAnchorIndex <= v.ExpireAnchorIndex {
 							ctx.handlers = append(ctx.handlers, v.Middleware)

@@ -129,7 +129,14 @@ func (mux *Mux) ReplaceMiddlewareAnchor(anchor MiddlewareAnchor) {
 	if !ok {
 		panic(errorx.NewFromStringf("mux.MiddlewareAnchorMap['%s'] not exists, can't use ReplaceMiddlewareAnchor", anchor.MiddlewareKey))
 	}
+	// replace map
 	mux.MiddlewareAnchorMap[anchor.MiddlewareKey] = anchor
+	// change expired anchor index in slice
+	for i,v :=range mux.MiddlewareAnchors {
+		if v.MiddlewareKey == anchor.MiddlewareKey {
+			mux.MiddlewareAnchors[i].ExpireAnchorIndex = anchor.ExpireAnchorIndex
+		}
+	}
 }
 
 // add messageID anchor
