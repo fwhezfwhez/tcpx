@@ -1,3 +1,4 @@
+// Package server executable file
 package main
 
 import (
@@ -41,15 +42,18 @@ func main() {
 	select {}
 }
 
+// OnConnect is a event callback when a connection is built
 func OnConnect(c *tcpx.Context) {
 	fmt.Println(fmt.Sprintf("connecting from remote host %s network %s", c.ClientIP(), c.Network()))
 }
+// OnClose is a event callback when a connection is closing
 func OnClose(c *tcpx.Context) {
 	fmt.Println(fmt.Sprintf("connecting from remote host %s network %s has stoped", c.ClientIP(), c.Network()))
 }
 
 var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
 
+// OnMessage is an event callback when a message just received
 func OnMessage(c *tcpx.Context) {
 	type ServiceA struct {
 		Username string `json:"username"`

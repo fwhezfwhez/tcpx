@@ -1,3 +1,4 @@
+// Package tcpx provides udp,tcp,kcp three kinds of protocol.
 package tcpx
 
 import (
@@ -360,7 +361,7 @@ func (tcpx *TcpX) ListenAndServeUDP(network, addr string, maxBufferSize ...int) 
 
 	select {}
 
-	return nil
+	//return nil
 }
 
 func ReadAllUDP(conn net.PacketConn, maxBufferSize ...int) ([]byte, net.Addr, error) {
@@ -440,7 +441,7 @@ func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ... interface{
 			}
 		}(ctx, tcpx)
 	}
-	return nil
+	//return nil
 }
 
 // This method is abstracted from ListenAndServe[,TCP,UDP] for handling middlewares.

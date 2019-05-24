@@ -1,3 +1,4 @@
+// Package docker-image executable file
 package main
 
 import (

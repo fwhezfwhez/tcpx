@@ -1,3 +1,4 @@
+// Package server executable file
 package main
 
 import (

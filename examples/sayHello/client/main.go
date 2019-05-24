@@ -1,3 +1,4 @@
+// Package client executable file
 package main
 
 import (
@@ -39,7 +40,9 @@ func main() {
 			//fmt.Println("服务端消息:", receivedString)
 			var resp pb.SayHelloReponse
 			message, e := tcpx.UnpackWithMarshallerName(buf, &resp, "protobuf")
-
+			if e!=nil {
+				panic(errorx.Wrap(e))
+			}
 			fmt.Println("收到服务端消息块:", smartPrint(message))
 			fmt.Println("服务端消息:", resp)
 		}

@@ -11,6 +11,7 @@ import (
 	"strconv"
 )
 
+// tcpx's tool to help build expected stream for communicating
 type Packx struct {
 	Marshaller Marshaller
 }
@@ -54,7 +55,7 @@ func (packx Packx) Pack(messageID int32, src interface{}, headers ... map[string
 // PackWithBody is used for self design protocol
 func (packx Packx) PackWithBody(messageID int32, body []byte, headers ...map[string]interface{}) ([]byte, error) {
 	if headers == nil || len(headers) == 0 {
-		return PackWithMarshallerAndBody(Message{MessageID: messageID, Header: make(map[string]interface{}), Body: nil}, body, packx.Marshaller)
+		return PackWithMarshallerAndBody(Message{MessageID: messageID, Header: make(map[string]interface{}), Body: nil}, body)
 	}
 	var header = make(map[string]interface{}, 0)
 	for _, v := range headers {
@@ -62,7 +63,7 @@ func (packx Packx) PackWithBody(messageID int32, body []byte, headers ...map[str
 			header [k1] = v1
 		}
 	}
-	return PackWithMarshallerAndBody(Message{MessageID: messageID, Header: header, Body: nil}, body, packx.Marshaller)
+	return PackWithMarshallerAndBody(Message{MessageID: messageID, Header: header, Body: nil}, body)
 }
 
 // Unpack
@@ -411,10 +412,7 @@ func UnpackToBlockFromReader(reader io.Reader) ([]byte, error) {
 	return append(info, content ...), nil
 }
 // This method is used to
-func PackWithMarshallerAndBody(message Message, body []byte, marshaller Marshaller) ([]byte, error) {
-	if marshaller == nil {
-		marshaller = JsonMarshaller{}
-	}
+func PackWithMarshallerAndBody(message Message, body []byte) ([]byte, error) {
 	var e error
 	var lengthBuf = make([]byte, 4)
 	var messageIDBuf = make([]byte, 4)

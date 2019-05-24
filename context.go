@@ -193,6 +193,9 @@ func (ctx *Context) commonReply(marshalName string, messageID int32, src interfa
 		return nil
 	}
 	buf, e = ctx.Packx.Pack(messageID, src, headers ...)
+	if e!=nil {
+		return errorx.Wrap(e)
+	}
 	return ctx.replyBuf(buf)
 }
 

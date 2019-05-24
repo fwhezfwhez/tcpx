@@ -1,5 +1,9 @@
 package tcpx
 
+// Message contains the necessary parts of tcpx protocol
+// MessagID is defining a message routing flag.
+// Header is an attachment of a message.
+// Body is the message itself, it should be raw message not serialized yet, like "hello", not []byte("hello")
 type Message struct {
 	MessageID int32                  `json:"message_id"`
 	Header    map[string]interface{} `json:"header"`

@@ -1,3 +1,4 @@
+// Package go provides go client example
 package main
 
 import (
@@ -65,6 +66,9 @@ func TestGoProtoBuf() {
 		panic(e)
 	}
 	rsp, e := c.Do(req)
+	if e != nil {
+		panic(e)
+	}
 	if rsp != nil && rsp.Body != nil {
 		defer rsp.Body.Close()
 	}
@@ -139,6 +143,9 @@ func TestGoTOML() {
 		panic(e)
 	}
 	rsp, e := c.Do(req)
+	if e != nil {
+		panic(e)
+	}
 	if rsp != nil && rsp.Body != nil {
 		defer rsp.Body.Close()
 	}
@@ -174,6 +181,9 @@ func TestGoYAML() {
 		panic(e)
 	}
 	rsp, e := c.Do(req)
+	if e != nil {
+		panic(e)
+	}
 	if rsp != nil && rsp.Body != nil {
 		defer rsp.Body.Close()
 	}

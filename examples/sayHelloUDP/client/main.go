@@ -1,3 +1,4 @@
+// Package client executable file
 package main
 
 import (

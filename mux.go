@@ -9,6 +9,8 @@ import (
 )
 
 const (
+	// context's anchor middleware will expire when call UnUse(),
+	// middleware added by Use() will be set 2019 anchor index by default
 	NOT_EXPIRE = 2019
 )
 
@@ -35,6 +37,7 @@ type Mux struct {
 	MessageIDAnchorMap map[int32]MessageIDAnchor
 }
 
+// New a mux instance, malloc memory for its mutex, handler slice...
 func NewMux() *Mux {
 	return &Mux{
 		Mutex:    &sync.RWMutex{},
@@ -170,6 +173,7 @@ func (mux *Mux) AddMessageIDSelfMiddleware(messageID int32, handlers ... func(c 
 
 }
 
+// Add Global middlewares
 func (mux *Mux) AddGlobalMiddleware(handlers ... func(c *Context)) {
 	mux.Mutex.Lock()
 	defer mux.Mutex.Unlock()
