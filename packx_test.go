@@ -2,8 +2,10 @@ package tcpx
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
+	"github.com/fwhezfwhez/tcpx/examples/sayHello/client/pb"
 	"testing"
 )
 
@@ -105,24 +107,158 @@ func TestPackx_PackWithBody(t *testing.T) {
 	}
 }
 func TestPackWithMarshallerName_UnPackWithUnmarshalName(t *testing.T) {
-	packx := NewPackx(JsonMarshaller{})
-	buf ,e :=packx.Pack(1, "hello")
-	if e!=nil {
-		fmt.Println(errorx.Wrap(e))
-		t.Fail()
-		return
+	// xml
+	{
+		buf ,e :=PackWithMarshallerName(Message{
+			MessageID: 1,
+			Header: nil,
+			Body: struct{
+				XMLName  xml.Name `xml:"xml"`
+				Name string `xml:"name"`
+			}{
+				Name: "hello",
+			},
+		}, "xml")
+		if e!=nil {
+			fmt.Println(errorx.Wrap(e))
+			t.Fail()
+			return
+		}
+		var receive2 struct{
+			XMLName  xml.Name `xml:"xml"`
+			Name string `xml:"name"`
+		}
+		_,e =UnpackWithMarshallerName(buf ,&receive2, "xml")
+		if e!=nil {
+			fmt.Println(errorx.Wrap(e))
+			t.Fail()
+			return
+		}
+		if receive2.Name != "hello" {
+			fmt.Println(fmt.Sprintf("received want %s but got %s", "hello", receive2))
+			t.Fail()
+			return
+		}
 	}
-	var receive string
-	_,e =UnpackWithMarshallerName(buf ,&receive, "json")
-	if e!=nil {
-		fmt.Println(errorx.Wrap(e))
-		t.Fail()
-		return
+
+
+	// json
+	{
+		buf ,e :=PackWithMarshallerName(Message{
+			MessageID: 1,
+			Header: nil,
+			Body: "hello",
+		}, "json")
+		if e!=nil {
+			fmt.Println(errorx.Wrap(e))
+			t.Fail()
+			return
+		}
+		var receive string
+		_,e =UnpackWithMarshallerName(buf ,&receive, "json")
+		if e!=nil {
+			fmt.Println(errorx.Wrap(e))
+			t.Fail()
+			return
+		}
+		if receive != "hello" {
+			fmt.Println(fmt.Sprintf("received want %s but got %s", "hello", receive))
+			t.Fail()
+			return
+		}
 	}
-	if receive != "hello" {
-		fmt.Println(fmt.Sprintf("received want %s but got %s", "hello", receive))
-		t.Fail()
-		return
+
+	// toml
+	{
+		buf ,e :=PackWithMarshallerName(Message{
+			MessageID: 1,
+			Header: nil,
+			Body: struct{
+				Name string `toml:"name"`
+			}{
+				Name: "hello",
+			},
+		}, "toml")
+		if e!=nil {
+			fmt.Println(errorx.Wrap(e))
+			t.Fail()
+			return
+		}
+		var receive2 struct{
+			Name string `toml:"name"`
+		}
+		_,e =UnpackWithMarshallerName(buf ,&receive2, "toml")
+		if e!=nil {
+			fmt.Println(errorx.Wrap(e))
+			t.Fail()
+			return
+		}
+		if receive2.Name != "hello" {
+			fmt.Println(fmt.Sprintf("received want %s but got %s", "hello", receive2))
+			t.Fail()
+			return
+		}
+	}
+
+	// yaml
+	{
+		buf ,e :=PackWithMarshallerName(Message{
+			MessageID: 1,
+			Header: nil,
+			Body: struct{
+				Name string `yaml:"name"`
+			}{
+				Name: "hello",
+			},
+		}, "yaml")
+		if e!=nil {
+			fmt.Println(errorx.Wrap(e))
+			t.Fail()
+			return
+		}
+		var receive2 struct{
+			Name string `yaml:"name"`
+		}
+		_,e =UnpackWithMarshallerName(buf ,&receive2, "yaml")
+		if e!=nil {
+			fmt.Println(errorx.Wrap(e))
+			t.Fail()
+			return
+		}
+		if receive2.Name != "hello" {
+			fmt.Println(fmt.Sprintf("received want %s but got %s", "hello", receive2))
+			t.Fail()
+			return
+		}
+	}
+
+	// protobuf
+	{
+		obj := pb.SayHelloRequest{
+			Username: "hello",
+		}
+		buf ,e :=PackWithMarshallerName(Message{
+			MessageID: 1,
+			Header: nil,
+			Body: &obj,
+		}, "protobuf")
+		if e!=nil {
+			fmt.Println(errorx.Wrap(e))
+			t.Fail()
+			return
+		}
+		var receive pb.SayHelloRequest
+		_,e =UnpackWithMarshallerName(buf ,&receive, "protobuf")
+		if e!=nil {
+			fmt.Println(errorx.Wrap(e))
+			t.Fail()
+			return
+		}
+		if receive.Username != "hello" {
+			fmt.Println(fmt.Sprintf("received want %s but got %s", "hello", receive.Username))
+			t.Fail()
+			return
+		}
 	}
 }
 func newBytes(a ...byte) []byte {

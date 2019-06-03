@@ -100,6 +100,12 @@ func TestGetMarshallerByMarshalName(t *testing.T) {
 		t.Fail()
 		return
 	}
+	protobufMarshaller, e := GetMarshallerByMarshalName("protobuf")
+	if e != nil {
+		fmt.Println(errorx.Wrap(e).Error())
+		t.Fail()
+		return
+	}
 	_, e = GetMarshallerByMarshalName("xxx")
 	if e == nil {
 		fmt.Println("should throw err but receive nothing")
@@ -111,6 +117,7 @@ func TestGetMarshallerByMarshalName(t *testing.T) {
 		xmlMarshaller.MarshalName(),
 		tomlMarshaller.MarshalName(),
 		yamlMarshaller.MarshalName(),
+		protobufMarshaller.MarshalName(),
 	)
 
 }

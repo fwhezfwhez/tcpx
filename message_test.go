@@ -70,4 +70,7 @@ func TestMessage_Set(t *testing.T) {
 		t.Fail()
 		return
 	}
+
+	var m2 Message
+	fmt.Println(m2.Get("example_nil"))
 }

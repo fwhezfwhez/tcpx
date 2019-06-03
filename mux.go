@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
-	"log"
 	"sync"
 )
 
@@ -89,16 +88,16 @@ func (mux *Mux) AnchorIndexOfMessageID(messageID int32) int {
 // get anchor index of a middleware
 //
 // Deprecated: unused in project, but it can be used in your personal test.
-func (mux *Mux) AnchorIndoexOfMiddleware(middlewareKey string) (int, int) {
-	mux.Mutex.RLock()
-	defer mux.Mutex.RUnlock()
-
-	anchor, ok := mux.MiddlewareAnchorMap[middlewareKey]
-	if !ok {
-		panic(errorx.NewFromStringf("middlewareKey '%s' anchor not found in mux.MiddlewareAnchorMap", middlewareKey))
-	}
-	return anchor.AnchorIndex, anchor.ExpireAnchorIndex
-}
+//func (mux *Mux) AnchorIndexOfMiddleware(middlewareKey string) (int, int) {
+//	mux.Mutex.RLock()
+//	defer mux.Mutex.RUnlock()
+//
+//	anchor, ok := mux.MiddlewareAnchorMap[middlewareKey]
+//	if !ok {
+//		panic(errorx.NewFromStringf("middlewareKey '%s' anchor not found in mux.MiddlewareAnchorMap", middlewareKey))
+//	}
+//	return anchor.AnchorIndex, anchor.ExpireAnchorIndex
+//}
 
 // add anchor index binding to middlewares
 func (mux *Mux) AddMiddlewareAnchor(anchor MiddlewareAnchor) {
@@ -188,76 +187,76 @@ func (mux *Mux) AddGlobalMiddleware(handlers ... func(c *Context)) {
 // messageID's self-related middleware will be ignored.
 //
 // Deprecated: unused in project, but it can be used in your personal test.
-func (mux *Mux) execAllMiddlewares(ctx *Context) {
-	for _, handler := range mux.GlobalMiddlewares {
-		handler(ctx)
-		if ctx.offset == ABORT {
-			return
-		}
-	}
-	ctx.ResetOffset()
-	for key, middlewareAnchor := range mux.MiddlewareAnchors {
-		log.Println(key)
-		middlewareAnchor.Middleware(ctx)
-		if ctx.offset == ABORT {
-			return
-		}
-	}
-	ctx.ResetOffset()
-}
-
-// exec middlewares added by srv.Add(1, middleware1, middleware2, handler)
+//func (mux *Mux) execAllMiddlewares(ctx *Context) {
+//	for _, handler := range mux.GlobalMiddlewares {
+//		handler(ctx)
+//		if ctx.offset == ABORT {
+//			return
+//		}
+//	}
+//	ctx.ResetOffset()
+//	for key, middlewareAnchor := range mux.MiddlewareAnchors {
+//		log.Println(key)
+//		middlewareAnchor.Middleware(ctx)
+//		if ctx.offset == ABORT {
+//			return
+//		}
+//	}
+//	ctx.ResetOffset()
+//}
 //
-// Deprecated: unused in project, but it can be used in your personal test.
-func (mux *Mux) execMessageIDMiddlewares(ctx *Context, messageID int32) {
-	for _, handler := range mux.GlobalMiddlewares {
-		handler(ctx)
-		if ctx.offset == ABORT {
-			return
-		}
-	}
-	ctx.ResetOffset()
-	var middlewareAnchorIndex, messagIDAnchorIndex int
-	var middlewareExpireAnchorIndex int
-	for k, middlewareAnchor := range mux.MiddlewareAnchorMap {
-		middlewareAnchorIndex, middlewareExpireAnchorIndex = mux.AnchorIndoexOfMiddleware(k)
-		messagIDAnchorIndex = mux.AnchorIndexOfMessageID(messageID)
-
-		if messagIDAnchorIndex > middlewareAnchorIndex && messagIDAnchorIndex <= middlewareExpireAnchorIndex {
-			middlewareAnchor.Middleware(ctx)
-			if ctx.offset == ABORT {
-				return
-			}
-		}
-	}
-	ctx.ResetOffset()
-
-	var selfMiddlewares []func(ctx *Context)
-	var ok bool
-	if selfMiddlewares, ok = mux.MessageIDSelfMiddleware[messageID]; ok {
-		if selfMiddlewares != nil && len(selfMiddlewares) > 0 {
-			for _, handler := range selfMiddlewares {
-				handler(ctx)
-				if ctx.offset == ABORT {
-					return
-				}
-			}
-		}
-	}
-	ctx.ResetOffset()
-
-}
-
-// exec all global middlewares
+//// exec middlewares added by srv.Add(1, middleware1, middleware2, handler)
+////
+//// Deprecated: unused in project, but it can be used in your personal test.
+//func (mux *Mux) execMessageIDMiddlewares(ctx *Context, messageID int32) {
+//	for _, handler := range mux.GlobalMiddlewares {
+//		handler(ctx)
+//		if ctx.offset == ABORT {
+//			return
+//		}
+//	}
+//	ctx.ResetOffset()
+//	var middlewareAnchorIndex, messagIDAnchorIndex int
+//	var middlewareExpireAnchorIndex int
+//	for k, middlewareAnchor := range mux.MiddlewareAnchorMap {
+//		middlewareAnchorIndex, middlewareExpireAnchorIndex = mux.AnchorIndexOfMiddleware(k)
+//		messagIDAnchorIndex = mux.AnchorIndexOfMessageID(messageID)
 //
-// Deprecated: unused in project, but it can be used in your personal test.
-func (mux *Mux) execGlobalMiddlewares(ctx *Context) {
-	for _, handler := range mux.GlobalMiddlewares {
-		handler(ctx)
-		if ctx.offset == ABORT {
-			return
-		}
-	}
-	ctx.ResetOffset()
-}
-
+//		if messagIDAnchorIndex > middlewareAnchorIndex && messagIDAnchorIndex <= middlewareExpireAnchorIndex {
+//			middlewareAnchor.Middleware(ctx)
+//			if ctx.offset == ABORT {
+//				return
+//			}
+//		}
+//	}
+//	ctx.ResetOffset()
+//
+//	var selfMiddlewares []func(ctx *Context)
+//	var ok bool
+//	if selfMiddlewares, ok = mux.MessageIDSelfMiddleware[messageID]; ok {
+//		if selfMiddlewares != nil && len(selfMiddlewares) > 0 {
+//			for _, handler := range selfMiddlewares {
+//				handler(ctx)
+//				if ctx.offset == ABORT {
+//					return
+//				}
+//			}
+//		}
+//	}
+//	ctx.ResetOffset()
+//
+//}
+//
+//// exec all global middlewares
+////
+//// Deprecated: unused in project, but it can be used in your personal test.
+//func (mux *Mux) execGlobalMiddlewares(ctx *Context) {
+//	for _, handler := range mux.GlobalMiddlewares {
+//		handler(ctx)
+//		if ctx.offset == ABORT {
+//			return
+//		}
+//	}
+//	ctx.ResetOffset()
+//}
+//

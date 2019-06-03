@@ -305,6 +305,7 @@ func TestContext_ProtoBuf(t *testing.T) {
 		srv.OnMessage = func(c *Context) {
 			var response pb.SayHelloReponse
 			response.Message = "hello, I'm server"
+			fmt.Println(c.ClientIP())
 			c.ProtoBuf(10086, &response)
 		}
 		go func() {
