@@ -22,6 +22,8 @@ func main() {
 	srv.OnClose = OnClose
 	srv.OnConnect = OnConnect
 
+	srv.Use("middleware1", Middleware1, "middleware2", Middleware2)
+
 	// Mux routine and OnMessage callback can't meet .
 	// When OnMessage is not nil, routes will lose effect.
 	// When srv.OnMessage has set, srv.AddHandler() makes no sense, it means user wants to handle raw message stream by self.
@@ -30,7 +32,7 @@ func main() {
 	// srv.OnMessage = OnMessage
 
 	srv.UseGlobal(MiddlewareGlobal)
-	srv.Use("middleware1", Middleware1, "middleware2", Middleware2)
+	//srv.Use("middleware1", Middleware1, "middleware2", Middleware2)
 	srv.AddHandler(1, SayHello)
 
 	srv.UnUse("middleware2")

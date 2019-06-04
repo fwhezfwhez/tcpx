@@ -192,8 +192,11 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 							ctx.handlers = make([]func(c *Context), 0, 10)
 						}
 						ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
-						for _, v := range tcpx.Mux.MiddlewareAnchorMap {
-							ctx.handlers = append(ctx.handlers, v.Middleware)
+						//for _, v := range tcpx.Mux.MiddlewareAnchorMap {
+						//	ctx.handlers = append(ctx.handlers, v.Middleware)
+						//}
+						for _, v := range tcpx.Mux.MiddlewareAnchors {
+								ctx.handlers = append(ctx.handlers, v.Middleware)
 						}
 						ctx.handlers = append(ctx.handlers, tcpx.OnMessage)
 						if len(ctx.handlers) > 0 {
@@ -302,7 +305,7 @@ func (tcpx *TcpX) ListenAndServeUDP(network, addr string, maxBufferSize ...int) 
 						ctx.handlers = make([]func(c *Context), 0, 10)
 					}
 					ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
-					for _, v := range tcpx.Mux.MiddlewareAnchorMap {
+					for _, v := range tcpx.Mux.MiddlewareAnchors {
 						ctx.handlers = append(ctx.handlers, v.Middleware)
 					}
 					ctx.handlers = append(ctx.handlers, tcpx.OnMessage)
@@ -460,7 +463,7 @@ func handleMiddleware(ctx *Context, tcpx *TcpX) {
 			ctx.handlers = make([]func(c *Context), 0, 10)
 		}
 		ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
-		for _, v := range tcpx.Mux.MiddlewareAnchorMap {
+		for _, v := range tcpx.Mux.MiddlewareAnchors {
 			ctx.handlers = append(ctx.handlers, v.Middleware)
 		}
 		ctx.handlers = append(ctx.handlers, tcpx.OnMessage)

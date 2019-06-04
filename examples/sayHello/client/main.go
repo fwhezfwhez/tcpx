@@ -40,7 +40,7 @@ func main() {
 			//fmt.Println("服务端消息:", receivedString)
 			var resp pb.SayHelloReponse
 			message, e := tcpx.UnpackWithMarshallerName(buf, &resp, "protobuf")
-			if e!=nil {
+			if e != nil {
 				panic(errorx.Wrap(e))
 			}
 			fmt.Println("收到服务端消息块:", smartPrint(message))
@@ -48,18 +48,19 @@ func main() {
 		}
 	}()
 
-	var buf []byte
-	var e error
-	buf, e = tcpx.PackWithMarshallerName(tcpx.Message{
-		MessageID: 11,
-		Body: &pb.SayHelloRequest{
-			Username: "ft",
-		},
-	}, "protobuf")
-	if e != nil {
-		panic(e)
-	}
-	conn.Write(buf)
+	//var buf []byte
+	//var e error
+	//buf, e = tcpx.PackWithMarshallerName(tcpx.Message{
+	//	MessageID: 11,
+	//	Body: &pb.SayHelloRequest{
+	//		Username: "ft",
+	//	},
+	//}, "protobuf")
+	//if e != nil {
+	//	panic(e)
+	//}
+	//conn.Write(buf)
+
 	//buf, e = packx.Pack(5, "hello,I am client xiao ming", map[string]interface{}{
 	//	"api": "/tcpx/client1/",
 	//})
@@ -81,11 +82,15 @@ func main() {
 	//
 	//conn.Write(buf)
 
-	//buf, e = packx.Pack(9, struct {
-	//	ServiceName string `json:"service_name"`
-	//}{"FT"}, map[string]interface{}{
-	//	"api": "/tcpx/client1/",
-	//})
+	//buf, e := tcpx.PackWithMarshallerName(tcpx.Message{
+	//	MessageID: 9,
+	//	Header: map[string]interface{}{
+	//		"api": "/tcpx/client1/",
+	//	},
+	//	Body: struct {
+	//		ServiceName string `json:"service_name"`
+	//	}{"FT"},
+	//}, "json")
 	//
 	//if e != nil {
 	//	panic(e)
