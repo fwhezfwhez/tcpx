@@ -37,6 +37,22 @@ func NewTcpX(marshaller Marshaller) *TcpX {
 	}
 }
 
+// Set built in heart beat on
+// If on is set true,client should call ctx.RecvHeartBeat().
+//
+// ...
+// srv := tcpx.NewTcpX(nil)
+// srv.HeartBeatMode(true, 10 * time.Second)
+// srv.AddHandler(1, func(c *tcpx.Context){
+//     c.RecvHeartBeat()
+// })
+//
+// ...
+func (tcpx *TcpX) HeartBeatMode(on bool, duration time.Duration) {
+	tcpx.HeartBeatOn = on
+	tcpx.HeatBeatInterval = duration
+}
+
 // Middleware typed 'AnchorTypedMiddleware'.
 // Add middlewares ruled by (string , func(c *Context),string , func(c *Context),string , func(c *Context)...).
 // Middlewares will be added with an indexed key, which is used to unUse this middleware.

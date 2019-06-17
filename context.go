@@ -318,6 +318,7 @@ func (ctx *Context) RawStream() ([]byte, error) {
 }
 
 // HeartBeatChan returns a prepared chan int to save heart-beat signal.
+// It will never be nil, if not exist the channel, it will auto-make.
 func (ctx *Context) HeartBeatChan() chan int {
 	channel, ok :=ctx.GetCtxPerConn("tcpx-heart-beat-channel")
 	if !ok {
@@ -333,4 +334,8 @@ func (ctx *Context) HeartBeatChan() chan int {
 		}
         return tmp
 	}
+}
+// RecvHeartBeat
+func (ctx *Context) RecvHeartBeat() {
+	ctx.HeartBeatChan() <- 1
 }
