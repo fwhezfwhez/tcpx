@@ -106,8 +106,15 @@ func (ctx *Context) Bind(dest interface{}) (Message, error) {
 }
 
 // When context serves for tcp, set context k-v pair of PerConnectionContext.
-// When context serves for udp, set context k-v pair of PerRequestContext.
+// When context serves for udp, set context k-v pair of PerRequestContext
+// Key should not start with 'tcpx-', or it will panic.
 func (ctx *Context) SetCtxPerConn(k, v interface{}) {
+	if tmp,ok :=k.(string);ok{
+		if strings.HasPrefix(tmp, "tcpx-") {
+			panic("keys starting with 'tcpx-' are not allowed setting, they're used officially inside")
+		}
+	}
+
 	if ctx.ConnectionProtocolType() == "udp" {
 		ctx.SetCtxPerRequest(k, v)
 		return
@@ -295,4 +302,22 @@ func (ctx *Context) BindWithMarshaller(dest interface{}, marshaller Marshaller) 
 // ctx.RawStream is help to access raw stream.
 func (ctx *Context) RawStream() ([]byte, error) {
 	return ctx.Packx.BodyBytesOf(ctx.Stream)
+}
+
+// HeartBeatChan returns a prepared chan int to save heart-beat signal.
+func (ctx *Context) HeartBeatChan() chan int {
+	channel, ok :=ctx.GetCtxPerConn("tcpx-heart-beat-channel")
+	if !ok {
+		channel = make(chan int ,1)
+		ctx.SetCtxPerConn("tcpx-heart-beat-channel", channel)
+		return channel.(chan int)
+	} else{
+        tmp,ok := channel.(chan int)
+        if !ok {
+			channel = make(chan int ,1)
+			ctx.SetCtxPerConn("tcpx-heart-beat-channel", channel)
+			return channel.(chan int)
+		}
+        return tmp
+	}
 }
