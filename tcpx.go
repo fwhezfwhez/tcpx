@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"reflect"
 	"syscall"
+	"time"
 
 	"net"
 )
@@ -23,6 +24,9 @@ type TcpX struct {
 	OnClose   func(ctx *Context)
 	Mux       *Mux
 	Packx     *Packx
+
+	HeartBeatOn      bool
+	HeatBeatInterval time.Duration
 }
 
 // new an tcpx srv instance
@@ -33,11 +37,27 @@ func NewTcpX(marshaller Marshaller) *TcpX {
 	}
 }
 
+// Set built in heart beat on
+// If on is set true,client should call ctx.RecvHeartBeat().
+//
+// ...
+// srv := tcpx.NewTcpX(nil)
+// srv.HeartBeatMode(true, 10 * time.Second)
+// srv.AddHandler(1, func(c *tcpx.Context){
+//     c.RecvHeartBeat()
+// })
+//
+// ...
+func (tcpx *TcpX) HeartBeatMode(on bool, duration time.Duration) {
+	tcpx.HeartBeatOn = on
+	tcpx.HeatBeatInterval = duration
+}
+
 // Middleware typed 'AnchorTypedMiddleware'.
 // Add middlewares ruled by (string , func(c *Context),string , func(c *Context),string , func(c *Context)...).
 // Middlewares will be added with an indexed key, which is used to unUse this middleware.
 // Each middleware added will be well set an anchor index, when UnUse this middleware, its expire_anchor_index will be well set too.
-func (tcpx *TcpX) Use(mids ... interface{}) {
+func (tcpx *TcpX) Use(mids ...interface{}) {
 	if tcpx.Mux == nil {
 		tcpx.Mux = NewMux()
 	}
@@ -104,7 +124,7 @@ func (tcpx *TcpX) UseGlobal(mids ...func(c *Context)) {
 
 // Middleware typed 'SelfRelatedTypedMiddleware'.
 // Add handlers routing by messageID
-func (tcpx *TcpX) AddHandler(messageID int32, handlers ... func(ctx *Context)) {
+func (tcpx *TcpX) AddHandler(messageID int32, handlers ...func(ctx *Context)) {
 	if len(handlers) <= 0 {
 		panic(errorx.NewFromStringf("handlers should more than 1 but got %d", len(handlers)))
 	}
@@ -161,6 +181,8 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 		if tcpx.OnConnect != nil {
 			tcpx.OnConnect(ctx)
 		}
+		go heartBeatMode(ctx, tcpx)
+
 		go func(ctx *Context, tcpx *TcpX) {
 			defer func() {
 				if e := recover(); e != nil {
@@ -259,6 +281,7 @@ func (tcpx *TcpX) ListenAndServeUDP(network, addr string, maxBufferSize ...int) 
 	if err != nil {
 		panic(err)
 	}
+
 	// listen to incoming udp packets
 	go func(conn net.PacketConn, tcpx *TcpX) {
 		defer func() {
@@ -286,6 +309,9 @@ func (tcpx *TcpX) ListenAndServeUDP(network, addr string, maxBufferSize ...int) 
 				//}
 			}
 			ctx := NewUDPContext(conn, addr, tcpx.Packx.Marshaller)
+
+			go heartBeatMode(ctx, tcpx)
+
 			ctx.Stream, e = tcpx.Packx.FirstBlockOfBytes(buffer)
 			if e != nil {
 				Logger.Println(e.Error())
@@ -392,7 +418,7 @@ func ReadAllUDP(conn net.PacketConn, maxBufferSize ...int) ([]byte, net.Addr, er
 }
 
 // kcp
-func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ... interface{}) error {
+func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ...interface{}) error {
 	listener, err := kcp.ListenWithOptions(addr, nil, 10, 3)
 	defer Defer(func() {
 		listener.Close()
@@ -410,6 +436,8 @@ func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ... interface{
 		if tcpx.OnConnect != nil {
 			tcpx.OnConnect(ctx)
 		}
+		go heartBeatMode(ctx, tcpx)
+
 		go func(ctx *Context, tcpx *TcpX) {
 			defer func() {
 				if e := recover(); e != nil {
@@ -521,6 +549,23 @@ func handleMiddleware(ctx *Context, tcpx *TcpX) {
 			ctx.Next()
 		}
 		ctx.Reset()
+	}
+}
+
+// Start a goroutine to watch heartbeat for a connection
+func heartBeatMode(ctx *Context, tcpx *TcpX) {
+	if tcpx.HeartBeatOn == true {
+		go func() {
+			for {
+				select {
+				case <-ctx.HeartBeatChan():
+					continue
+				case <-time.After(tcpx.HeatBeatInterval):
+					_ = ctx.CloseConn()
+					return
+				}
+			}
+		}()
 	}
 }
 
