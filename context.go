@@ -101,6 +101,19 @@ func (ctx *Context) ConnectionProtocolType() string {
 	}
 	return "tcp"
 }
+
+// Close its connection
+func (ctx *Context) CloseConn() error{
+	switch ctx.ConnectionProtocolType() {
+	case "tcp":
+		return ctx.Conn.Close()
+	case "udp":
+		return ctx.PacketConn.Close()
+	case "kcp":
+		return ctx.UDPSession.Close()
+	}
+	return nil
+}
 func (ctx *Context) Bind(dest interface{}) (Message, error) {
 	return ctx.Packx.Unpack(ctx.Stream, dest)
 }
