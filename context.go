@@ -193,7 +193,7 @@ func (ctx *Context) commonReply(marshalName string, messageID int32, src interfa
 		return nil
 	}
 	buf, e = ctx.Packx.Pack(messageID, src, headers ...)
-	if e!=nil {
+	if e != nil {
 		return errorx.Wrap(e)
 	}
 	return ctx.replyBuf(buf)
@@ -287,6 +287,12 @@ func (ctx *Context) isAbort() bool {
 
 // BindWithMarshaller will specific marshaller.
 // in contract, c.Bind() will use its inner packx object marshaller
-func (ctx *Context) BindWithMarshaller(dest interface{},marshaller Marshaller) (Message, error) {
+func (ctx *Context) BindWithMarshaller(dest interface{}, marshaller Marshaller) (Message, error) {
 	return NewPackx(marshaller).Unpack(ctx.Stream, dest)
+}
+
+// ctx.Stream is well marshaled by pack tool.
+// ctx.RawStream is help to access raw stream.
+func (ctx *Context) RawStream() ([]byte, error) {
+	return ctx.Packx.BodyBytesOf(ctx.Stream)
 }
