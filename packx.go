@@ -418,7 +418,7 @@ func UnpackToBlockFromReader(reader io.Reader) ([]byte, error) {
 
 	return append(info, content ...), nil
 }
-// This method is used to
+// This method is used to pack message whose body is well-marshaled.
 func PackWithMarshallerAndBody(message Message, body []byte) ([]byte, error) {
 	var e error
 	var lengthBuf = make([]byte, 4)

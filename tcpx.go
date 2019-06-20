@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	DEFAULT_HEARTBEAT_MESSAGEID = - 1392
+	DEFAULT_HEARTBEAT_MESSAGEID = 1392
 )
 
 // OnMessage and mux are opposite.

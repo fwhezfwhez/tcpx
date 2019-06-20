@@ -6,7 +6,7 @@
     <a href="https://godoc.org/github.com/fwhezfwhez/tcpx"><img src="http://img.shields.io/badge/godoc-reference-blue.svg?style=flat"></a>
     <a href="https://www.travis-ci.org/fwhezfwhez/tcpx"><img src="https://www.travis-ci.org/fwhezfwhez/tcpx.svg?branch=master"></a>
     <a href="https://gitter.im/fwhezfwhez-tcpx/community"><img src="https://badges.gitter.im/Join%20Chat.svg"></a>
-	<a href="https://codecov.io/gh/fwhezfwhez/tcpx"><img src="https://codecov.io/gh/fwhezfwhez/tcpx/branch/master/graph/badge.svg"></a>
+    <a href="https://codecov.io/gh/fwhezfwhez/tcpx"><img src="https://codecov.io/gh/fwhezfwhez/tcpx/branch/master/graph/badge.svg"></a>
 </p>
 
 A very convenient tcp framework in golang.
@@ -22,7 +22,9 @@ Supporting protocols
 
 - [Why designing tcp framwork rather than the official?](#why-designing-tcp-framwork-rather-than-the-official)
 - [1. Start](#1-start)
+    - [dependency:](#dependency)
 - [2. Example](#2-example)
+    - [2.1 Heartbeat](#21-heartbeat)
 - [3. Ussages](#3-ussages)
   - [3.1 How to add middlewares?](#31-how-to-add-middlewares)
   - [3.2 When to use OnMessage callback?](#32-when-to-use-onmessage-callback)
@@ -60,6 +62,39 @@ Make sure run `protoc --version` available.
 
 ## 2. Example
 https://github.com/fwhezfwhez/tcpx/tree/master/examples/sayHello
+
+#### 2.1 Heartbeat
+https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/heartbeat
+
+tcpx has built-in heartbeat handler. Default heartbeat messageID is 1392.It means client should send heartbeat pack in specific interval.When fail received more than 3 times, connection will break by server.
+
+**srv side**
+```go
+    srv := tcpx.NewTcpX(nil)
+    srv.HeartBeatModeDetail(true, 10 * time.Second, false, tcpx.DEFAULT_HEARTBEAT_MESSAGEID)
+```
+
+**client side**
+```go
+        var heartBeat []byte
+        heartBeat, e = tcpx.PackWithMarshaller(tcpx.Message{
+            MessageID: tcpx.DEFAULT_HEARTBEAT_MESSAGEID,
+            Header:    nil,
+            Body:      nil,
+        }, nil)
+        for {
+            conn.Write(heartBeat)
+            time.Sleep(10 * time.Second)
+        }
+```
+
+**rewrite heartbeat handler**
+```go
+    srv.RewriteHeartBeatHandler(1300, func(c *tcpx.Context) {
+        fmt.Println("rewrite heartbeat handler")
+        c.RecvHeartBeat()
+    })
+```
 
 ## 3. Ussages
 Now tcpx advises two modes handling stream, using OnMessage requires user handling stream by himself
