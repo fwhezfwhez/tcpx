@@ -7,8 +7,8 @@ import (
 	"github.com/fwhezfwhez/tcpx/examples/sayHello/server/pb"
 	"time"
 
-	//"github.com/fwhezfwhez/tcpx"
-	"tcpx"
+	"github.com/fwhezfwhez/tcpx"
+	//"tcpx"
 )
 
 func main() {

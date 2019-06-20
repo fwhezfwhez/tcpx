@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
-	//"github.com/fwhezfwhez/tcpx"
+	"github.com/fwhezfwhez/tcpx"
 	"github.com/fwhezfwhez/tcpx/examples/sayHello/client/pb"
 	"net"
 	"time"
 
-	"tcpx"
+	//"tcpx"
 )
 
 // var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
