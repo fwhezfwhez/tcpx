@@ -18,25 +18,61 @@ func TestMessage_Packet(t *testing.T) {
 	}
 	fmt.Println(packet)
 	fmt.Println(string(packet))
+
+	// 发送无数据包，心跳等
+	message2 := Message{
+		MessageID: 1,
+		Header: nil,
+		Body: nil,
+	}
+	packet2,e := PackWithMarshaller(message2, nil)
+	if e!=nil {
+		panic(e)
+	}
+	fmt.Println(packet2)
+	fmt.Println(string(packet2))
 }
 
 func TestMessage_Unpack(t *testing.T) {
-	message := Message{
-		MessageID: 1,
-		Header: nil,
-		Body: "你好",
-	}
-	packet,e := PackWithMarshaller(message, nil)
-	if e!=nil {
-		panic(e)
-	}
-	var body string
-	message, e = UnpackWithMarshaller(packet, &body, nil)
-	if e!=nil {
-		panic(e)
-	}
-	fmt.Println("message:",message)
-	fmt.Println("body:", body)
+	// 正常message
+	func() {
+		message := Message{
+			MessageID: 1,
+			Header: nil,
+			Body: "你好",
+		}
+		packet,e := PackWithMarshaller(message, nil)
+		if e!=nil {
+			panic(e)
+		}
+		var body string
+		message, e = UnpackWithMarshaller(packet, &body, nil)
+		if e!=nil {
+			panic(e)
+		}
+		fmt.Println("message:",message)
+		fmt.Println("body:", body)
+	}()
+	// body为nil
+	func() {
+		message := Message{
+			MessageID: 1,
+			Header: nil,
+			Body: nil,
+		}
+		packet,e := PackWithMarshaller(message, nil)
+		if e!=nil {
+			panic(e)
+		}
+		var body string
+		message, e = UnpackWithMarshaller(packet, &body, nil)
+		if e!=nil {
+			panic(e)
+		}
+		fmt.Println("message:",message)
+		fmt.Println("body:", body)
+	}()
+
 }
 
 func TestJSONEmptyMap(t *testing.T) {

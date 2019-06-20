@@ -135,6 +135,14 @@ func (ctx *Context) SetCtxPerConn(k, v interface{}) {
 	ctx.PerConnectionContext.Store(k, v)
 }
 
+func (ctx *Context) setCtxPerConn(k, v interface{}) {
+	if ctx.ConnectionProtocolType() == "udp" {
+		ctx.SetCtxPerRequest(k, v)
+		return
+	}
+	ctx.PerConnectionContext.Store(k, v)
+}
+
 // When context serves for tcp, get context k-v pair of PerConnectionContext.
 // When context serves for udp, get context k-v pair of PerRequestContext.
 func (ctx *Context) GetCtxPerConn(k interface{}) (interface{}, bool) {
@@ -323,13 +331,13 @@ func (ctx *Context) HeartBeatChan() chan int {
 	channel, ok :=ctx.GetCtxPerConn("tcpx-heart-beat-channel")
 	if !ok {
 		channel = make(chan int ,1)
-		ctx.SetCtxPerConn("tcpx-heart-beat-channel", channel)
+		ctx.setCtxPerConn("tcpx-heart-beat-channel", channel)
 		return channel.(chan int)
 	} else{
         tmp,ok := channel.(chan int)
         if !ok {
 			channel = make(chan int ,1)
-			ctx.SetCtxPerConn("tcpx-heart-beat-channel", channel)
+			ctx.setCtxPerConn("tcpx-heart-beat-channel", channel)
 			return channel.(chan int)
 		}
         return tmp

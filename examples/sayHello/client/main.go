@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
-	"github.com/fwhezfwhez/tcpx"
+	//"github.com/fwhezfwhez/tcpx"
 	"github.com/fwhezfwhez/tcpx/examples/sayHello/client/pb"
 	"net"
-	//"tcpx"
+	"time"
+
+	"tcpx"
 )
 
 // var packx = tcpx.NewPackx(tcpx.JsonMarshaller{})
@@ -48,17 +50,31 @@ func main() {
 		}
 	}()
 
-	//var buf []byte
-	//var e error
-	//buf, e = tcpx.PackWithMarshallerName(tcpx.Message{
-	//	MessageID: 11,
-	//	Body: &pb.SayHelloRequest{
-	//		Username: "ft",
-	//	},
-	//}, "protobuf")
-	//if e != nil {
-	//	panic(e)
-	//}
+	var buf []byte
+	var e error
+	buf, e = tcpx.PackWithMarshallerName(tcpx.Message{
+		MessageID: 11,
+		Body: &pb.SayHelloRequest{
+			Username: "ft",
+		},
+	}, "protobuf")
+	if e != nil {
+		panic(e)
+	}
+	go func() {
+		heartbeat, e := tcpx.PackWithMarshallerName(tcpx.Message{
+			MessageID: 20,
+			Body:      nil,
+		}, "protobuf")
+		if e != nil {
+			panic(e)
+		}
+		for {
+			time.Sleep(5 * time.Second)
+			conn.Write(heartbeat)
+		}
+	}()
+	_ = buf
 	//conn.Write(buf)
 
 	//buf, e = packx.Pack(5, "hello,I am client xiao ming", map[string]interface{}{
@@ -69,6 +85,7 @@ func main() {
 	//}
 	//
 	//fmt.Println(buf)
+
 	//conn.Write(buf)
 
 	//buf, e = packx.Pack(7, struct {
@@ -80,6 +97,7 @@ func main() {
 	//	panic(e)
 	//}
 	//
+	// _=buf
 	//conn.Write(buf)
 
 	//buf, e := tcpx.PackWithMarshallerName(tcpx.Message{

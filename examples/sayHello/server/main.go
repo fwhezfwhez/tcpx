@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
 	"github.com/fwhezfwhez/tcpx/examples/sayHello/server/pb"
+	"time"
 
-	"github.com/fwhezfwhez/tcpx"
-	//"tcpx"
+	//"github.com/fwhezfwhez/tcpx"
+	"tcpx"
 )
 
 func main() {
@@ -22,6 +23,15 @@ func main() {
 	srv.OnClose = OnClose
 	srv.OnConnect = OnConnect
 
+	srv.HeartBeatMode(true, 5*time.Second)
+	//srv.AddHandler(-1, func(c *tcpx.Context) {
+	//	fmt.Println("receive heartbeat:", c.Stream)
+	//	fmt.Println(c.RawStream())
+	//	c.RecvHeartBeat()
+	//})
+	srv.RewriteHeartBeatHandler(20, func(c *tcpx.Context) {
+		fmt.Println("rewrite heartbeat and receive from client")
+	})
 	srv.Use("middleware1", Middleware1, "middleware2", Middleware2)
 
 	// Mux routine and OnMessage callback can't meet .

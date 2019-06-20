@@ -15,6 +15,10 @@ import (
 	"net"
 )
 
+const (
+	DEFAULT_HEARTBEAT_MESSAGEID = - 1392
+)
+
 // OnMessage and mux are opposite.
 // When OnMessage is not nil, users should deal will ctx.Stream themselves.
 // When OnMessage is nil, program will handle ctx.Stream via mux routing by messageID
@@ -25,8 +29,11 @@ type TcpX struct {
 	Mux       *Mux
 	Packx     *Packx
 
-	HeartBeatOn      bool
-	HeatBeatInterval time.Duration
+	// heartbeat setting
+	HeartBeatOn        bool          // whether start a goroutine to spy on each connection
+	HeatBeatInterval   time.Duration // heartbeat should receive in the interval
+	HeartBeatMessageID int32         // which messageID to listen to heartbeat
+	ThroughMiddleware  bool          // whether heartbeat go through middleware
 }
 
 // new an tcpx srv instance
@@ -38,19 +45,64 @@ func NewTcpX(marshaller Marshaller) *TcpX {
 }
 
 // Set built in heart beat on
-// If on is set true,client should call ctx.RecvHeartBeat().
+// Default heartbeat handler will be added by messageID tcpx.DEFAULT_HEARTBEAT_MESSAGEID(-1392),
+// and default heartbeat handler will not execute all kinds of middleware.
 //
 // ...
 // srv := tcpx.NewTcpX(nil)
 // srv.HeartBeatMode(true, 10 * time.Second)
-// srv.AddHandler(1, func(c *tcpx.Context){
-//     c.RecvHeartBeat()
-// })
-//
 // ...
+//
+// * If you want specific official heartbeat handler messageID and make it execute middleware:
+// srv.HeartBeatModeDetail(true, 10 * time.Second, true, 1)
+//
+// * If you want to rewrite heartbeat handler:
+// srv.RewriteHeartBeatHandler(func(c *tcpx.Context){})
 func (tcpx *TcpX) HeartBeatMode(on bool, duration time.Duration) {
 	tcpx.HeartBeatOn = on
 	tcpx.HeatBeatInterval = duration
+	tcpx.ThroughMiddleware = false
+	tcpx.HeartBeatMessageID = DEFAULT_HEARTBEAT_MESSAGEID
+
+	if on {
+		tcpx.AddHandler(DEFAULT_HEARTBEAT_MESSAGEID, func(c *Context) {
+			Logger.Println("recv heartbeat:", c.Stream)
+
+			c.RecvHeartBeat()
+		})
+	}
+}
+
+// specific args for heartbeat
+func (tcpx *TcpX) HeartBeatModeDetail(on bool, duration time.Duration, throughMiddleware bool, messageID int32) {
+	tcpx.HeartBeatOn = on
+	tcpx.HeatBeatInterval = duration
+	tcpx.ThroughMiddleware = throughMiddleware
+	tcpx.HeartBeatMessageID = messageID
+
+	if on {
+		tcpx.AddHandler(messageID, func(c *Context) {
+			Logger.Println("recv heartbeat:", c.Stream)
+			c.RecvHeartBeat()
+		})
+	}
+}
+
+// Rewrite heartbeat handler
+// It will inherit properties of the older heartbeat handler:
+//   * heartbeatInterval
+//   * throughMiddleware
+func (tcpx *TcpX) RewriteHeartBeatHandler(messageID int32, f func(c *Context)) {
+	tcpx.removeHandler(tcpx.HeartBeatMessageID)
+	tcpx.HeartBeatMessageID = messageID
+	tcpx.AddHandler(messageID, f)
+}
+
+// remove a handler by messageID.
+// this method is used for rewrite heartbeat handler
+func (tcpx *TcpX) removeHandler(messageID int32) {
+	delete(tcpx.Mux.Handlers, messageID)
+	delete(tcpx.Mux.MessageIDAnchorMap, messageID)
 }
 
 // Middleware typed 'AnchorTypedMiddleware'.
@@ -181,7 +233,7 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 		if tcpx.OnConnect != nil {
 			tcpx.OnConnect(ctx)
 		}
-		go heartBeatMode(ctx, tcpx)
+		go heartBeatWatch(ctx, tcpx)
 
 		go func(ctx *Context, tcpx *TcpX) {
 			defer func() {
@@ -310,7 +362,7 @@ func (tcpx *TcpX) ListenAndServeUDP(network, addr string, maxBufferSize ...int) 
 			}
 			ctx := NewUDPContext(conn, addr, tcpx.Packx.Marshaller)
 
-			go heartBeatMode(ctx, tcpx)
+			go heartBeatWatch(ctx, tcpx)
 
 			ctx.Stream, e = tcpx.Packx.FirstBlockOfBytes(buffer)
 			if e != nil {
@@ -436,7 +488,7 @@ func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ...interface{}
 		if tcpx.OnConnect != nil {
 			tcpx.OnConnect(ctx)
 		}
-		go heartBeatMode(ctx, tcpx)
+		go heartBeatWatch(ctx, tcpx)
 
 		go func(ctx *Context, tcpx *TcpX) {
 			defer func() {
@@ -509,13 +561,16 @@ func handleMiddleware(ctx *Context, tcpx *TcpX) {
 			Logger.Println(errorx.Wrap(e).Error())
 			return
 		}
+
 		handler, ok := tcpx.Mux.Handlers[messageID]
 		if !ok {
 			Logger.Println(fmt.Sprintf("messageID %d handler not found", messageID))
 			return
 		}
-
-		//handler(ctx)
+		if messageID == tcpx.HeartBeatMessageID && !tcpx.ThroughMiddleware {
+			handler(ctx)
+			return
+		}
 
 		if ctx.handlers == nil {
 			ctx.handlers = make([]func(c *Context), 0, 10)
@@ -553,15 +608,25 @@ func handleMiddleware(ctx *Context, tcpx *TcpX) {
 }
 
 // Start a goroutine to watch heartbeat for a connection
-func heartBeatMode(ctx *Context, tcpx *TcpX) {
+// When a connection is built and heartbeat mode is true, the
+// then, client should do it in 5 second and continuous sends heartbeat each heart beat interval.
+// ATTENTION:
+// If server side set heartbeat 10s,
+// client should consider the message transport price, when client send heartbeat 10s,server side might receive beyond 10s.
+// Once heartbeat fail more than 3 times, it will close the connection.
+func heartBeatWatch(ctx *Context, tcpx *TcpX) {
 	if tcpx.HeartBeatOn == true {
+		var times int
 		go func() {
 			for {
 				select {
 				case <-ctx.HeartBeatChan():
 					continue
 				case <-time.After(tcpx.HeatBeatInterval):
-					_ = ctx.CloseConn()
+					times++
+					if times == 3 {
+						_ = ctx.CloseConn()
+					}
 					return
 				}
 			}

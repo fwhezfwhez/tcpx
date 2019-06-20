@@ -262,10 +262,13 @@ func PackWithMarshaller(message Message, marshaller Marshaller) ([]byte, error) 
 		return nil, e
 	}
 	binary.BigEndian.PutUint32(headerLengthBuf, uint32(len(headerBuf)))
-	bodyBuf, e = marshaller.Marshal(message.Body)
-	if e != nil {
-		return nil, e
+	if message.Body!=nil{
+		bodyBuf, e = marshaller.Marshal(message.Body)
+		if e != nil {
+			return nil, e
+		}
 	}
+
 	binary.BigEndian.PutUint32(bodyLengthBuf, uint32(len(bodyBuf)))
 	var content = make([]byte, 0, 1024)
 
@@ -317,6 +320,7 @@ func UnpackWithMarshaller(stream []byte, dest interface{}, marshaller Marshaller
 	if marshaller == nil {
 		marshaller = JsonMarshaller{}
 	}
+	var e error
 	// 包长
 	length := binary.BigEndian.Uint32(stream[0:4])
 	stream = stream[0 : length+4]
@@ -328,12 +332,15 @@ func UnpackWithMarshaller(stream []byte, dest interface{}, marshaller Marshaller
 	bodyLength := binary.BigEndian.Uint32(stream[12:16])
 	// header
 	var header map[string]interface{}
-	e := json.Unmarshal(stream[16:(16 + headerLength)], &header)
-	if e != nil {
-		return Message{}, e
+	if headerLength!=0 {
+		e = json.Unmarshal(stream[16:(16 + headerLength)], &header)
+		if e != nil {
+			return Message{}, e
+		}
 	}
+
 	// body
-	if dest != nil {
+	if bodyLength!=0 {
 		e = marshaller.Unmarshal(stream[16+headerLength:(16 + headerLength + bodyLength)], dest)
 		if e != nil {
 			return Message{}, e
