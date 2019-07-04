@@ -15,7 +15,7 @@ sudo: true
 go_import_path: github.com/fwhezfwhez/tcpx
 
 before_install:
-  - go get -t -v ./...
+  # - go get -t -v ./...
   - go get github.com/fwhezfwhez/errorx
   - go get github.com/pelletier/go-toml
   - go get github.com/golang/protobuf/proto
