@@ -25,7 +25,7 @@ Supporting protocols
     - [dependency:](#dependency)
 - [2. Example](#2-example)
     - [2.1 Heartbeat](#21-heartbeat)
-    - [2.2 Online/Offline](#22-Online/Offline)
+    - [2.2 Online/Offline](#22-onlineoffline)
 - [3. Ussages](#3-ussages)
   - [3.1 How to add middlewares?](#31-how-to-add-middlewares)
   - [3.2 When to use OnMessage callback?](#32-when-to-use-onmessage-callback)
