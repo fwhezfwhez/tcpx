@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/fwhezfwhez/tcpx"
 	"net"
 	//"tcpx"
@@ -20,7 +21,11 @@ func main() {
 		Body:      nil,
 	}, nil)
 	for {
-		conn.Write(heartBeat)
+		_, e = conn.Write(heartBeat)
+		if e != nil {
+			fmt.Println(e.Error())
+			break
+		}
 		time.Sleep(10 * time.Second)
 	}
 }

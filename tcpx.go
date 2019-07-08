@@ -4,8 +4,11 @@ package tcpx
 import (
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
+	"github.com/gin-gonic/gin"
+	"github.com/rs/cors"
 	"github.com/xtaci/kcp-go"
 	"io"
+	"net/http"
 	"os"
 	"os/signal"
 	"reflect"
@@ -34,6 +37,19 @@ type TcpX struct {
 	HeatBeatInterval   time.Duration // heartbeat should receive in the interval
 	HeartBeatMessageID int32         // which messageID to listen to heartbeat
 	ThroughMiddleware  bool          // whether heartbeat go through middleware
+
+	// built-in clientPool
+	// clientPool is defined in github.com/tcpx/clientPool/client-pool.go, you might design your own pool yourself as
+	// long as you set builtInPool = false
+	// - How to add/delete an connection into/from pool?
+	// ```
+	//    // add
+	//    ctx.Online(username)
+	//    // delete
+	//    ctx.Offline(username)
+	// ``
+	builtInPool bool
+	pool        *ClientPool
 }
 
 // new an tcpx srv instance
@@ -42,6 +58,11 @@ func NewTcpX(marshaller Marshaller) *TcpX {
 		Packx: NewPackx(marshaller),
 		Mux:   NewMux(),
 	}
+}
+func (tcpx *TcpX) WithBuiltInPool(yes bool) *TcpX{
+	tcpx.builtInPool = yes
+	tcpx.pool = NewClientPool()
+	return tcpx
 }
 
 // Set built in heart beat on
@@ -53,12 +74,19 @@ func NewTcpX(marshaller Marshaller) *TcpX {
 // srv.HeartBeatMode(true, 10 * time.Second)
 // ...
 //
-// * If you want specific official heartbeat handler messageID and make it execute middleware:
+// * If you want specific official heartbeat handler detail:
 // srv.HeartBeatModeDetail(true, 10 * time.Second, true, 1)
 //
 // * If you want to rewrite heartbeat handler:
 // srv.RewriteHeartBeatHandler(func(c *tcpx.Context){})
-func (tcpx *TcpX) HeartBeatMode(on bool, duration time.Duration) {
+//
+// * If you think built in heartbeat not good, abandon it:
+// ```
+// srv.AddHandler(1111, func(c *tcpx.Context){
+//    //do nothing by default and define your heartbeat yourself
+// })
+// ```
+func (tcpx *TcpX) HeartBeatMode(on bool, duration time.Duration) *TcpX{
 	tcpx.HeartBeatOn = on
 	tcpx.HeatBeatInterval = duration
 	tcpx.ThroughMiddleware = false
@@ -66,15 +94,15 @@ func (tcpx *TcpX) HeartBeatMode(on bool, duration time.Duration) {
 
 	if on {
 		tcpx.AddHandler(DEFAULT_HEARTBEAT_MESSAGEID, func(c *Context) {
-			Logger.Println("recv heartbeat:", c.Stream)
-
+			Logger.Println(fmt.Sprintf("recv '%s' heartbeat:", c.ClientIP()), c.Stream)
 			c.RecvHeartBeat()
 		})
 	}
+	return tcpx
 }
 
 // specific args for heartbeat
-func (tcpx *TcpX) HeartBeatModeDetail(on bool, duration time.Duration, throughMiddleware bool, messageID int32) {
+func (tcpx *TcpX) HeartBeatModeDetail(on bool, duration time.Duration, throughMiddleware bool, messageID int32) *TcpX{
 	tcpx.HeartBeatOn = on
 	tcpx.HeatBeatInterval = duration
 	tcpx.ThroughMiddleware = throughMiddleware
@@ -82,20 +110,22 @@ func (tcpx *TcpX) HeartBeatModeDetail(on bool, duration time.Duration, throughMi
 
 	if on {
 		tcpx.AddHandler(messageID, func(c *Context) {
-			Logger.Println("recv heartbeat:", c.Stream)
+			Logger.Println(fmt.Sprintf("recv '%s' heartbeat:", c.ClientIP()), c.Stream)
 			c.RecvHeartBeat()
 		})
 	}
+	return tcpx
 }
 
 // Rewrite heartbeat handler
 // It will inherit properties of the older heartbeat handler:
 //   * heartbeatInterval
 //   * throughMiddleware
-func (tcpx *TcpX) RewriteHeartBeatHandler(messageID int32, f func(c *Context)) {
+func (tcpx *TcpX) RewriteHeartBeatHandler(messageID int32, f func(c *Context)) *TcpX{
 	tcpx.removeHandler(tcpx.HeartBeatMessageID)
 	tcpx.HeartBeatMessageID = messageID
 	tcpx.AddHandler(messageID, f)
+	return tcpx
 }
 
 // remove a handler by messageID.
@@ -208,6 +238,9 @@ func (tcpx *TcpX) ListenAndServe(network, addr string) error {
 	if In(network, []string{"kcp"}) {
 		return tcpx.ListenAndServeKCP(network, addr)
 	}
+	if In(network, []string{"http"}) {
+		return tcpx.ListenAndServeHTTP(network, addr)
+	}
 	return errorx.NewFromStringf("'network' doesn't support '%s'", network)
 }
 
@@ -233,6 +266,10 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 		if tcpx.OnConnect != nil {
 			tcpx.OnConnect(ctx)
 		}
+		if tcpx.builtInPool {
+			ctx.poolRef = tcpx.pool
+		}
+
 		go heartBeatWatch(ctx, tcpx)
 
 		go func(ctx *Context, tcpx *TcpX) {
@@ -363,6 +400,9 @@ func (tcpx *TcpX) ListenAndServeUDP(network, addr string, maxBufferSize ...int) 
 			ctx := NewUDPContext(conn, addr, tcpx.Packx.Marshaller)
 
 			go heartBeatWatch(ctx, tcpx)
+			if tcpx.builtInPool {
+				ctx.poolRef = tcpx.pool
+			}
 
 			ctx.Stream, e = tcpx.Packx.FirstBlockOfBytes(buffer)
 			if e != nil {
@@ -470,6 +510,7 @@ func ReadAllUDP(conn net.PacketConn, maxBufferSize ...int) ([]byte, net.Addr, er
 }
 
 // kcp
+// all configs are using default value.
 func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ...interface{}) error {
 	listener, err := kcp.ListenWithOptions(addr, nil, 10, 3)
 	defer Defer(func() {
@@ -489,6 +530,9 @@ func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ...interface{}
 			tcpx.OnConnect(ctx)
 		}
 		go heartBeatWatch(ctx, tcpx)
+		if tcpx.builtInPool {
+			ctx.poolRef = tcpx.pool
+		}
 
 		go func(ctx *Context, tcpx *TcpX) {
 			defer func() {
@@ -529,6 +573,30 @@ func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ...interface{}
 		}(ctx, tcpx)
 	}
 	//return nil
+}
+
+// http
+// developing, do not use.
+func (tcpx *TcpX) ListenAndServeHTTP(network, addr string) error {
+	r := gin.New()
+	r.Any("/tcpx/message/:messageID/", func(ginCtx *gin.Context) {
+
+	})
+	s := &http.Server{
+		Addr:           addr,
+		Handler:        cors.AllowAll().Handler(r),
+		ReadTimeout:    60 * time.Second,
+		WriteTimeout:   60 * time.Second,
+		MaxHeaderBytes: 1 << 21,
+	}
+	return s.ListenAndServe()
+}
+
+// grpc
+// developing, do not use.
+// marshaller must be protobuf, clients should send message bytes which body is protobuf bytes
+func (tcpx *TcpX) ListenAndServeGRPC(network, addr string) error {
+	return nil
 }
 
 // This method is abstracted from ListenAndServe[,TCP,UDP] for handling middlewares.
@@ -632,6 +700,13 @@ func heartBeatWatch(ctx *Context, tcpx *TcpX) {
 			}
 		}()
 	}
+}
+
+func online(ctx *Context, tcpx *TcpX) {
+
+}
+func offline(ctx *Context, tcpx *TcpX) {
+
 }
 
 // Before exist do ending jobs

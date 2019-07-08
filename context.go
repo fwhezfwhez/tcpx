@@ -29,9 +29,11 @@ type Context struct {
 	// for kcp conn
 	UDPSession *kcp.UDPSession
 
+	// for k-v pair shared in connection/request scope
 	PerConnectionContext *sync.Map
 	PerRequestContext    *sync.Map
 
+	// for pack and unpack
 	Packx  *Packx
 	Stream []byte
 
@@ -40,6 +42,70 @@ type Context struct {
 	// else next
 	offset   int
 	handlers []func(*Context)
+
+	// saves a pool-ref from TcpX instance
+	// only when TcpX instance has set builtInPool true, poolRef is not nil
+	// - How to use this?
+	// `ctx.Online(username)`
+	// `ctx.Offline()`
+	poolRef *ClientPool
+}
+
+// Only used when tcpX instance's builtInPool is true,
+// otherwise you should design your own client pool(github.com/fwhezfwhez/tcpx/clientPool/client-pool.go), and manage it
+// yourself, like:
+// ```
+//     var myPool = clientPool.NewClientPool()
+//     func main() {
+//         srv := tcpx.NewTcpX(nil)
+//         srv.AddHandler(1, func(c *tcpx.Context){
+//             type Login struct{
+//                Username string
+//             }
+//             var userLogin Login
+//             c.Bind(&userLogin)
+//             myPool.Online(userLogin.Username, c)
+//         })
+//         srv.AddHandler(2, func(c *tcpx.Context){
+//             username, ok := ctx.Username()
+//             if !ok {
+//                 fmt.Println("anonymous user no need to offline")
+//             }
+//             myPool.Offline(username)
+//         })
+//     }
+// ```
+func (ctx *Context) Online(username string) {
+	ctx.SetUsername(username)
+	ctx.poolRef.Online(username, ctx)
+}
+
+// Only used when tcpX instance's builtInPool is true,
+// otherwise you should design your own client pool(github.com/fwhezfwhez/tcpx/clientPool/client-pool.go), and manage it
+// yourself, like:
+// ```
+//     var myPool = clientPool.NewClientPool()
+//     func main() {
+//         srv := tcpx.NewTcpX(nil)
+//         srv.AddHandler(1, func(c *tcpx.Context){
+//             type Login struct{
+//                Username string
+//             }
+//             var userLogin Login
+//             c.Bind(&userLogin)
+//             myPool.Online(userLogin.Username, c)
+//         })
+//         srv.AddHandler(2, func(c *tcpx.Context){
+//             myPool.Offline(userLogin.Username)
+//         })
+//     }
+//```
+func (ctx *Context) Offline() {
+	username, ok := ctx.Username()
+	if !ok {
+		return
+	}
+	ctx.poolRef.Offline(username)
 }
 
 // New a context.
@@ -103,7 +169,7 @@ func (ctx *Context) ConnectionProtocolType() string {
 }
 
 // Close its connection
-func (ctx *Context) CloseConn() error{
+func (ctx *Context) CloseConn() error {
 	switch ctx.ConnectionProtocolType() {
 	case "tcp":
 		return ctx.Conn.Close()
@@ -122,7 +188,7 @@ func (ctx *Context) Bind(dest interface{}) (Message, error) {
 // When context serves for udp, set context k-v pair of PerRequestContext
 // Key should not start with 'tcpx-', or it will panic.
 func (ctx *Context) SetCtxPerConn(k, v interface{}) {
-	if tmp,ok :=k.(string);ok{
+	if tmp, ok := k.(string); ok {
 		if strings.HasPrefix(tmp, "tcpx-") {
 			panic("keys starting with 'tcpx-' are not allowed setting, they're used officially inside")
 		}
@@ -135,6 +201,22 @@ func (ctx *Context) SetCtxPerConn(k, v interface{}) {
 	ctx.PerConnectionContext.Store(k, v)
 }
 
+// Context's connection scope saves an unique key to the connection pool
+// Before using this, ctx.SetUsername should be call first
+func (ctx *Context) Username() (string, bool) {
+	usernameI, ok := ctx.GetCtxPerConn("tcpx-username")
+	if !ok {
+		return "", ok
+	}
+	return usernameI.(string), ok
+}
+
+// When you want to tag an username to the context, use it, or it will be regarded as an anonymous user
+func (ctx *Context) SetUsername(username string) {
+	ctx.setCtxPerConn("tcpx-username", username)
+}
+
+// this has no restriction for key, should be used in local package
 func (ctx *Context) setCtxPerConn(k, v interface{}) {
 	if ctx.ConnectionProtocolType() == "udp" {
 		ctx.SetCtxPerRequest(k, v)
@@ -328,21 +410,22 @@ func (ctx *Context) RawStream() ([]byte, error) {
 // HeartBeatChan returns a prepared chan int to save heart-beat signal.
 // It will never be nil, if not exist the channel, it will auto-make.
 func (ctx *Context) HeartBeatChan() chan int {
-	channel, ok :=ctx.GetCtxPerConn("tcpx-heart-beat-channel")
+	channel, ok := ctx.GetCtxPerConn("tcpx-heart-beat-channel")
 	if !ok {
-		channel = make(chan int ,1)
+		channel = make(chan int, 1)
 		ctx.setCtxPerConn("tcpx-heart-beat-channel", channel)
 		return channel.(chan int)
-	} else{
-        tmp,ok := channel.(chan int)
-        if !ok {
-			channel = make(chan int ,1)
+	} else {
+		tmp, ok := channel.(chan int)
+		if !ok {
+			channel = make(chan int, 1)
 			ctx.setCtxPerConn("tcpx-heart-beat-channel", channel)
 			return channel.(chan int)
 		}
-        return tmp
+		return tmp
 	}
 }
+
 // RecvHeartBeat
 func (ctx *Context) RecvHeartBeat() {
 	ctx.HeartBeatChan() <- 1

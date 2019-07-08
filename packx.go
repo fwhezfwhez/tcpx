@@ -434,9 +434,6 @@ func PackWithMarshallerAndBody(message Message, body []byte) ([]byte, error) {
 	}
 	binary.BigEndian.PutUint32(headerLengthBuf, uint32(len(headerBuf)))
 	bodyBuf = body
-	if e != nil {
-		return nil, e
-	}
 	binary.BigEndian.PutUint32(bodyLengthBuf, uint32(len(bodyBuf)))
 	var content = make([]byte, 0, 1024)
 
@@ -453,4 +450,25 @@ func PackWithMarshallerAndBody(message Message, body []byte) ([]byte, error) {
 	packet = append(packet, lengthBuf...)
 	packet = append(packet, content...)
 	return packet, nil
+}
+
+func PackHeartbeat()[]byte{
+    buf,e:= PackWithMarshallerAndBody(Message{
+    	MessageID:DEFAULT_HEARTBEAT_MESSAGEID,
+	},nil)
+    if e!=nil{
+    	panic(e)
+	}
+    return buf
+}
+
+// pack short signal which only contains messageID
+func PackStuff(messageID int32)[]byte{
+	buf,e:= PackWithMarshallerAndBody(Message{
+		MessageID:messageID,
+	},nil)
+	if e!=nil{
+		panic(e)
+	}
+	return buf
 }
