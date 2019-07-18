@@ -14,7 +14,8 @@ func main() {
 
 	srv.AddHandler(1, online)
 	srv.AddHandler(3, offline)
-	srv.ListenAndServe("tcp", ":8102")
+	srv.AddHandler(5, send)
+	srv.ListenAndServe("tcp", ":8103")
 }
 
 func online(c *tcpx.Context) {
@@ -27,10 +28,30 @@ func online(c *tcpx.Context) {
 		return
 	}
 	c.Online(login.Username)
-	fmt.Println("online success")
 }
 
 func offline(c *tcpx.Context) {
 	fmt.Println("offline success")
 	c.Offline()
+}
+
+func send(c *tcpx.Context) {
+	type RequestFrom struct {
+		Message string `json:"message"`
+		ToUser  string `json:"to_user"`
+	}
+	type ResponseTo struct {
+		Message  string `json:"message"`
+		FromUser string `json:"from_user"`
+	}
+	var req RequestFrom
+	if _, e := c.Bind(&req); e != nil {
+		panic(e)
+	}
+	if e := c.SendToUsername(req.ToUser, 6, ResponseTo{
+		Message:  req.Message,
+		FromUser: req.ToUser,
+	}); e != nil {
+		panic(e)
+	}
 }

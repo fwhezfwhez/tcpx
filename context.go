@@ -1,6 +1,8 @@
 package tcpx
 
 import (
+	"errors"
+	"fmt"
 	"github.com/fwhezfwhez/errorx"
 	"github.com/xtaci/kcp-go"
 	"net"
@@ -51,6 +53,7 @@ type Context struct {
 	poolRef *ClientPool
 }
 
+// No strategy to ensure username repeat or not , if username exists, it will replace the old connection context in the pool.
 // Only used when tcpX instance's builtInPool is true,
 // otherwise you should design your own client pool(github.com/fwhezfwhez/tcpx/clientPool/client-pool.go), and manage it
 // yourself, like:
@@ -75,9 +78,13 @@ type Context struct {
 //         })
 //     }
 // ```
-func (ctx *Context) Online(username string) {
+func (ctx *Context) Online(username string) error {
+	if username == "" {
+		return errors.New("can't use empty username to online")
+	}
 	ctx.SetUsername(username)
 	ctx.poolRef.Online(username, ctx)
+	return nil
 }
 
 // Only used when tcpX instance's builtInPool is true,
@@ -100,12 +107,16 @@ func (ctx *Context) Online(username string) {
 //         })
 //     }
 //```
-func (ctx *Context) Offline() {
+func (ctx *Context) Offline() error {
+	if ctx.poolRef == nil {
+		return errors.New("ctx.poolRef is nil, did you call 'tcpX.WithBuiltInPool(true)' or 'tcpX.SetPool(pool *tcpx.ClientPool)' yet")
+	}
 	username, ok := ctx.Username()
 	if !ok {
-		return
+		return errors.New("offline username  empty, did you call c.Online(username string) yet")
 	}
 	ctx.poolRef.Offline(username)
+	return nil
 }
 
 // New a context.
@@ -177,6 +188,9 @@ func (ctx *Context) CloseConn() error {
 		return ctx.PacketConn.Close()
 	case "kcp":
 		return ctx.UDPSession.Close()
+	}
+	if ctx.poolRef != nil {
+		ctx.Offline()
 	}
 	return nil
 }
@@ -429,4 +443,23 @@ func (ctx *Context) HeartBeatChan() chan int {
 // RecvHeartBeat
 func (ctx *Context) RecvHeartBeat() {
 	ctx.HeartBeatChan() <- 1
+}
+
+// Send to another conn index via username.
+// Make sure called `srv.WithBuiltInPool(true)`
+func (ctx *Context) SendToUsername(username string, messageID int32, src interface{}, headers ...map[string]interface{}) error {
+	if ctx.poolRef == nil {
+		return errors.New("'ctx.poolRef' is nil, make sure call 'srv.WithBuiltInPool(true)'")
+	}
+	anotherCtx := ctx.poolRef.GetClientPool(username)
+	if anotherCtx == nil {
+		return errors.New(fmt.Sprintf("username '%s' not found in pool, he/she might get offine", username))
+	}
+	return ctx.SendToConn(anotherCtx, messageID, src, headers...)
+}
+
+// Send to another conn via Context.
+// Make sure called `srv.WithBuiltInPool(true)`
+func (ctx *Context) SendToConn(anotherCtx *Context, messageID int32, src interface{}, headers ...map[string]interface{}) error {
+	return anotherCtx.Reply(messageID, src, headers...)
 }

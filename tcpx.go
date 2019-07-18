@@ -571,15 +571,18 @@ func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ...interface{}
 			continue
 		}
 		ctx := NewKCPContext(conn, tcpx.Packx.Marshaller)
-		if tcpx.OnConnect != nil {
-			tcpx.OnConnect(ctx)
-		}
 
-		go broadcastSignalWatch(ctx, tcpx)
-		go heartBeatWatch(ctx, tcpx)
 		if tcpx.builtInPool {
 			ctx.poolRef = tcpx.pool
 		}
+
+		if tcpx.OnConnect != nil {
+			tcpx.OnConnect(ctx)
+		}
+		// signal management
+		go broadcastSignalWatch(ctx, tcpx)
+
+		go heartBeatWatch(ctx, tcpx)
 
 		go func(ctx *Context, tcpx *TcpX) {
 			defer func() {

@@ -49,3 +49,12 @@ func (cp *ClientPool) Offline(username string) {
 		cp.DeleteFromClientPool(username)
 	}
 }
+
+func (cp *ClientPool) isOnline(username string) bool {
+	cp.m.RLock()
+	defer cp.m.RUnlock()
+
+	_, ok := cp.Clients[username]
+	return ok
+}
+
