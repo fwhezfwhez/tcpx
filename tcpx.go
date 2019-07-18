@@ -2,6 +2,7 @@
 package tcpx
 
 import (
+	"errors"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
 	"github.com/gin-gonic/gin"
@@ -12,6 +13,8 @@ import (
 	"os"
 	"os/signal"
 	"reflect"
+	"runtime/debug"
+	"sync"
 	"syscall"
 	"time"
 
@@ -20,6 +23,8 @@ import (
 
 const (
 	DEFAULT_HEARTBEAT_MESSAGEID = 1392
+	STATE_RUNNING               = 1
+	STATE_STOP                  = 2
 )
 
 // OnMessage and mux are opposite.
@@ -50,18 +55,50 @@ type TcpX struct {
 	// ``
 	builtInPool bool
 	pool        *ClientPool
+
+	// external for restart
+	properties []*PropertyCache
+	pLock      *sync.RWMutex
+	state      int // 1- running, 2- stopped
+
+	// broadcast some signal to all connection
+	withSignals    bool
+	closeAllSignal chan int // used to close all connection
+}
+
+type PropertyCache struct {
+	Network string
+	Port    string
+
+	// only when network is 'tcp','kcp', Listener can assert to net.Listener.
+	// when network is 'udp', it can assert to net.PackConn
+	Listener interface{}
 }
 
 // new an tcpx srv instance
 func NewTcpX(marshaller Marshaller) *TcpX {
 	return &TcpX{
-		Packx: NewPackx(marshaller),
-		Mux:   NewMux(),
+		Packx:      NewPackx(marshaller),
+		Mux:        NewMux(),
+		properties: make([]*PropertyCache, 0, 10),
+		pLock:      &sync.RWMutex{},
+		state:      2,
 	}
 }
-func (tcpx *TcpX) WithBuiltInPool(yes bool) *TcpX{
+
+// whether using built-in pool
+func (tcpx *TcpX) WithBuiltInPool(yes bool) *TcpX {
 	tcpx.builtInPool = yes
 	tcpx.pool = NewClientPool()
+	return tcpx
+}
+
+// Whether using signal-broadcast.
+// Used for these situations:
+// closeAllSignal - close all connection and remove them from the built-in pool
+func (tcpx *TcpX) WithBroadCastSignal(yes bool) *TcpX {
+	tcpx.withSignals = yes
+	tcpx.closeAllSignal = make(chan int, 1)
 	return tcpx
 }
 
@@ -86,7 +123,7 @@ func (tcpx *TcpX) WithBuiltInPool(yes bool) *TcpX{
 //    //do nothing by default and define your heartbeat yourself
 // })
 // ```
-func (tcpx *TcpX) HeartBeatMode(on bool, duration time.Duration) *TcpX{
+func (tcpx *TcpX) HeartBeatMode(on bool, duration time.Duration) *TcpX {
 	tcpx.HeartBeatOn = on
 	tcpx.HeatBeatInterval = duration
 	tcpx.ThroughMiddleware = false
@@ -102,7 +139,7 @@ func (tcpx *TcpX) HeartBeatMode(on bool, duration time.Duration) *TcpX{
 }
 
 // specific args for heartbeat
-func (tcpx *TcpX) HeartBeatModeDetail(on bool, duration time.Duration, throughMiddleware bool, messageID int32) *TcpX{
+func (tcpx *TcpX) HeartBeatModeDetail(on bool, duration time.Duration, throughMiddleware bool, messageID int32) *TcpX {
 	tcpx.HeartBeatOn = on
 	tcpx.HeatBeatInterval = duration
 	tcpx.ThroughMiddleware = throughMiddleware
@@ -121,7 +158,7 @@ func (tcpx *TcpX) HeartBeatModeDetail(on bool, duration time.Duration, throughMi
 // It will inherit properties of the older heartbeat handler:
 //   * heartbeatInterval
 //   * throughMiddleware
-func (tcpx *TcpX) RewriteHeartBeatHandler(messageID int32, f func(c *Context)) *TcpX{
+func (tcpx *TcpX) RewriteHeartBeatHandler(messageID int32, f func(c *Context)) *TcpX {
 	tcpx.removeHandler(tcpx.HeartBeatMessageID)
 	tcpx.HeartBeatMessageID = messageID
 	tcpx.AddHandler(messageID, f)
@@ -244,11 +281,27 @@ func (tcpx *TcpX) ListenAndServe(network, addr string) error {
 	return errorx.NewFromStringf("'network' doesn't support '%s'", network)
 }
 
+func (tcpx *TcpX) fillProperty(network, addr string, listener interface{}) {
+	if tcpx.properties == nil {
+		tcpx.properties = make([]*PropertyCache, 0, 10)
+	}
+	tcpx.pLock.Lock()
+
+	prop := &PropertyCache{
+		Network:  network,
+		Port:     addr,
+		Listener: listener,
+	}
+	tcpx.properties = append(tcpx.properties, prop)
+	tcpx.pLock.Unlock()
+}
+
 // tcp
 func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 	defer func() {
 		if e := recover(); e != nil {
 			Logger.Println(fmt.Sprintf("recover from panic %v", e))
+			Logger.Println(string(debug.Stack()))
 			return
 		}
 	}()
@@ -256,26 +309,38 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 	if err != nil {
 		return err
 	}
+	tcpx.fillProperty(network, addr, listener)
+
+	defer listener.Close()
+	tcpx.openState()
 	for {
+
+		if tcpx.State() == STATE_STOP {
+			break
+		}
 		conn, err := listener.Accept()
 		if err != nil {
 			Logger.Println(err.Error())
 			continue
 		}
 		ctx := NewContext(conn, tcpx.Packx.Marshaller)
-		if tcpx.OnConnect != nil {
-			tcpx.OnConnect(ctx)
-		}
+
 		if tcpx.builtInPool {
 			ctx.poolRef = tcpx.pool
 		}
 
+		if tcpx.OnConnect != nil {
+			tcpx.OnConnect(ctx)
+		}
+
+		go broadcastSignalWatch(ctx, tcpx)
 		go heartBeatWatch(ctx, tcpx)
 
 		go func(ctx *Context, tcpx *TcpX) {
 			defer func() {
 				if e := recover(); e != nil {
 					Logger.Println(fmt.Sprintf("recover from panic %v", e))
+					Logger.Println(string(debug.Stack()))
 				}
 			}()
 			defer ctx.Conn.Close()
@@ -293,70 +358,32 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 					break
 				}
 
-				// Since ctx.handlers and ctx.offset will change per request, cannot take this function as a new routine,
-				// or ctx.offset and ctx.handler will get dirty
-				//func(ctx *Context, tcpx *TcpX) {
-				//	if tcpx.OnMessage != nil {
-				//		// tcpx.Mux.execAllMiddlewares(ctx)
-				//		//tcpx.OnMessage(ctx)
-				//		if ctx.handlers == nil {
-				//			ctx.handlers = make([]func(c *Context), 0, 10)
-				//		}
-				//		ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
-				//		//for _, v := range tcpx.Mux.MiddlewareAnchorMap {
-				//		//	ctx.handlers = append(ctx.handlers, v.Middleware)
-				//		//}
-				//		for _, v := range tcpx.Mux.MiddlewareAnchors {
-				//				ctx.handlers = append(ctx.handlers, v.Middleware)
-				//		}
-				//		ctx.handlers = append(ctx.handlers, tcpx.OnMessage)
-				//		if len(ctx.handlers) > 0 {
-				//			ctx.Next()
-				//		}
-				//		ctx.Reset()
-				//	} else {
-				//		messageID, e := tcpx.Packx.MessageIDOf(ctx.Stream)
-				//		if e != nil {
-				//			Logger.Println(errorx.Wrap(e).Error())
-				//			return
-				//		}
-				//		handler, ok := tcpx.Mux.Handlers[messageID]
-				//		if !ok {
-				//			Logger.Println(fmt.Sprintf("messageID %d handler not found", messageID))
-				//			return
-				//		}
-				//
-				//		//handler(ctx)
-				//
-				//		if ctx.handlers == nil {
-				//			ctx.handlers = make([]func(c *Context), 0, 10)
-				//		}
-				//
-				//		// global middleware
-				//		ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
-				//		// anchor middleware
-				//		messageIDAnchorIndex := tcpx.Mux.AnchorIndexOfMessageID(messageID)
-				//		for _, v := range tcpx.Mux.MiddlewareAnchors {
-				//			if messageIDAnchorIndex > v.AnchorIndex && messageIDAnchorIndex <= v.ExpireAnchorIndex {
-				//				ctx.handlers = append(ctx.handlers, v.Middleware)
-				//			}
-				//		}
-				//		// self-related middleware
-				//		ctx.handlers = append(ctx.handlers, tcpx.Mux.MessageIDSelfMiddleware[messageID]...)
-				//		// handler
-				//		ctx.handlers = append(ctx.handlers, handler)
-				//
-				//		if len(ctx.handlers) > 0 {
-				//			ctx.Next()
-				//		}
-				//		ctx.Reset()
-				//	}
-				//}(ctx, tcpx)
 				handleMiddleware(ctx, tcpx)
 				continue
 			}
 		}(ctx, tcpx)
 	}
+	return nil
+}
+
+// set srv state running
+func (tcpx *TcpX) openState() {
+	tcpx.pLock.Lock()
+	defer tcpx.pLock.Unlock()
+	tcpx.state = 1
+}
+
+// set srv state stopped
+// tcp, udp, kcp will stop for circle and close listener/conn
+func (tcpx *TcpX) stopState() {
+	tcpx.pLock.Lock()
+	defer tcpx.pLock.Unlock()
+	tcpx.state = 2
+}
+func (tcpx *TcpX) State() int {
+	tcpx.pLock.RLock()
+	defer tcpx.pLock.RUnlock()
+	return tcpx.state
 }
 
 // udp
@@ -370,7 +397,11 @@ func (tcpx *TcpX) ListenAndServeUDP(network, addr string, maxBufferSize ...int) 
 	if err != nil {
 		panic(err)
 	}
+	defer conn.Close()
 
+	tcpx.fillProperty(network, addr, conn)
+
+	tcpx.openState()
 	// listen to incoming udp packets
 	go func(conn net.PacketConn, tcpx *TcpX) {
 		defer func() {
@@ -382,8 +413,12 @@ func (tcpx *TcpX) ListenAndServeUDP(network, addr string, maxBufferSize ...int) 
 		var addr net.Addr
 		var e error
 		for {
+			if tcpx.State() == STATE_STOP {
+				break
+			}
 			// read from udp conn
 			buffer, addr, e = ReadAllUDP(conn, maxBufferSize...)
+
 			// global
 			if e != nil {
 				if e == io.EOF {
@@ -399,6 +434,8 @@ func (tcpx *TcpX) ListenAndServeUDP(network, addr string, maxBufferSize ...int) 
 			}
 			ctx := NewUDPContext(conn, addr, tcpx.Packx.Marshaller)
 
+			go broadcastSignalWatch(ctx, tcpx)
+
 			go heartBeatWatch(ctx, tcpx)
 			if tcpx.builtInPool {
 				ctx.poolRef = tcpx.pool
@@ -407,7 +444,7 @@ func (tcpx *TcpX) ListenAndServeUDP(network, addr string, maxBufferSize ...int) 
 			ctx.Stream, e = tcpx.Packx.FirstBlockOfBytes(buffer)
 			if e != nil {
 				Logger.Println(e.Error())
-				break
+				continue
 			}
 			// This function are shared among udp ListenAndServe,tcp ListenAndServe and kcp ListenAndServe.
 			// But there are some important differences.
@@ -513,13 +550,21 @@ func ReadAllUDP(conn net.PacketConn, maxBufferSize ...int) ([]byte, net.Addr, er
 // all configs are using default value.
 func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ...interface{}) error {
 	listener, err := kcp.ListenWithOptions(addr, nil, 10, 3)
-	defer Defer(func() {
-		listener.Close()
-	})
+	//defer Defer(func() {
+	//	listener.Close()
+	//})
 	if err != nil {
 		return err
 	}
+	defer listener.Close()
+
+	tcpx.fillProperty(network, addr, listener)
+
+	tcpx.openState()
 	for {
+		if tcpx.State() == STATE_STOP {
+			break
+		}
 		conn, e := listener.AcceptKCP()
 		if e != nil {
 			Logger.Println(err.Error())
@@ -529,6 +574,8 @@ func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ...interface{}
 		if tcpx.OnConnect != nil {
 			tcpx.OnConnect(ctx)
 		}
+
+		go broadcastSignalWatch(ctx, tcpx)
 		go heartBeatWatch(ctx, tcpx)
 		if tcpx.builtInPool {
 			ctx.poolRef = tcpx.pool
@@ -572,7 +619,7 @@ func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ...interface{}
 			}
 		}(ctx, tcpx)
 	}
-	//return nil
+	return nil
 }
 
 // http
@@ -687,6 +734,10 @@ func heartBeatWatch(ctx *Context, tcpx *TcpX) {
 		var times int
 		go func() {
 			for {
+				if tcpx.State() == STATE_STOP {
+					ctx.CloseConn()
+					break
+				}
 				select {
 				case <-ctx.HeartBeatChan():
 					continue
@@ -702,6 +753,18 @@ func heartBeatWatch(ctx *Context, tcpx *TcpX) {
 	}
 }
 
+func broadcastSignalWatch(ctx *Context, tcpx *TcpX) {
+	if tcpx.withSignals == true {
+		for {
+			select {
+			case <-tcpx.closeAllSignal:
+				ctx.CloseConn()
+				return
+			}
+		}
+	}
+}
+
 func online(ctx *Context, tcpx *TcpX) {
 
 }
@@ -710,7 +773,7 @@ func offline(ctx *Context, tcpx *TcpX) {
 }
 
 // Before exist do ending jobs
-func (tcpx TcpX) BeforeExit(f ...func()) {
+func (tcpx *TcpX) BeforeExit(f ...func()) {
 	go func() {
 		defer func() {
 			if e := recover(); e != nil {
@@ -726,4 +789,42 @@ func (tcpx TcpX) BeforeExit(f ...func()) {
 		}
 		os.Exit(0)
 	}()
+}
+
+func (tcpx *TcpX) Stop() error {
+	if tcpx.State() == STATE_STOP {
+		return errors.New("already stopped")
+	}
+
+	// close all listener
+	tcpx.stopState()
+	for i, v := range tcpx.properties {
+		switch v.Network {
+		case "kcp", "tcp":
+			tcpx.properties[i].Listener.(net.Listener).Close()
+		case "udp":
+			tcpx.properties[i].Listener.(net.PacketConn).Close()
+		}
+	}
+
+	// close all connections
+	if tcpx.withSignals == true {
+		close(tcpx.closeAllSignal)
+	} else {
+		if tcpx.pool != nil {
+			oldPool := tcpx.pool
+			go func() {
+				oldPool.m.Lock()
+				defer oldPool.m.Unlock()
+
+				for k, _ := range oldPool.Clients {
+					oldPool.Clients[k].CloseConn()
+					delete(oldPool.Clients, k)
+				}
+			}()
+
+			tcpx.pool = NewClientPool()
+		}
+	}
+	return nil
 }
