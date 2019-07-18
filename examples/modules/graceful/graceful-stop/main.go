@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
-	"tcpx"
+	"github.com/fwhezfwhez/tcpx"
+	// "tcpx"
 	"time"
 )
 
