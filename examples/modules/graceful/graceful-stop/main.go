@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
 	"github.com/fwhezfwhez/tcpx"
-	// "tcpx"
+	//"tcpx"
 	"time"
 )
 
@@ -25,10 +25,16 @@ func main() {
 	// after 10 seconds and stop it
     go func() {
         time.Sleep(10 * time.Second)
-        if e:=srv.Stop(); e!=nil {
+        if e:=srv.Stop(false); e!=nil {
         	fmt.Println(errorx.Wrap(e).Error())
         	return
 		}
+		//
+		//if e:=srv.Stop(true); e!=nil {
+		//	fmt.Println(errorx.Wrap(e).Error())
+		//	return
+		//}
 	}()
+
 	select{}
 }
