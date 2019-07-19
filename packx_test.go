@@ -86,22 +86,22 @@ func TestTCPx_Packx_Property(t *testing.T) {
 
 func TestPackx_PackWithBody(t *testing.T) {
 	packx := NewPackx(JsonMarshaller{})
-	buf ,e :=packx.PackWithBody(1, newBytes(1, 2, 3, 4, 5))
-	if e!=nil {
+	buf, e := packx.PackWithBody(1, newBytes(1, 2, 3, 4, 5))
+	if e != nil {
 		fmt.Println(errorx.Wrap(e))
 		t.Fail()
 		return
 	}
 
-	body, e:=packx.BodyBytesOf(buf)
-	if e!=nil {
+	body, e := packx.BodyBytesOf(buf)
+	if e != nil {
 		fmt.Println(errorx.Wrap(e))
 		t.Fail()
 		return
 	}
 	fmt.Println(body)
 	if len(body) != 5 {
-		fmt.Println(fmt.Sprintf("body unpack want length 5 but got %d, %v",len(body), body))
+		fmt.Println(fmt.Sprintf("body unpack want length 5 but got %d, %v", len(body), body))
 		t.Fail()
 		return
 	}
@@ -109,27 +109,27 @@ func TestPackx_PackWithBody(t *testing.T) {
 func TestPackWithMarshallerName_UnPackWithUnmarshalName(t *testing.T) {
 	// xml
 	{
-		buf ,e :=PackWithMarshallerName(Message{
+		buf, e := PackWithMarshallerName(Message{
 			MessageID: 1,
-			Header: nil,
-			Body: struct{
-				XMLName  xml.Name `xml:"xml"`
-				Name string `xml:"name"`
+			Header:    nil,
+			Body: struct {
+				XMLName xml.Name `xml:"xml"`
+				Name    string   `xml:"name"`
 			}{
 				Name: "hello",
 			},
 		}, "xml")
-		if e!=nil {
+		if e != nil {
 			fmt.Println(errorx.Wrap(e))
 			t.Fail()
 			return
 		}
-		var receive2 struct{
-			XMLName  xml.Name `xml:"xml"`
-			Name string `xml:"name"`
+		var receive2 struct {
+			XMLName xml.Name `xml:"xml"`
+			Name    string   `xml:"name"`
 		}
-		_,e =UnpackWithMarshallerName(buf ,&receive2, "xml")
-		if e!=nil {
+		_, e = UnpackWithMarshallerName(buf, &receive2, "xml")
+		if e != nil {
 			fmt.Println(errorx.Wrap(e))
 			t.Fail()
 			return
@@ -141,22 +141,21 @@ func TestPackWithMarshallerName_UnPackWithUnmarshalName(t *testing.T) {
 		}
 	}
 
-
 	// json
 	{
-		buf ,e :=PackWithMarshallerName(Message{
+		buf, e := PackWithMarshallerName(Message{
 			MessageID: 1,
-			Header: nil,
-			Body: "hello",
+			Header:    nil,
+			Body:      "hello",
 		}, "json")
-		if e!=nil {
+		if e != nil {
 			fmt.Println(errorx.Wrap(e))
 			t.Fail()
 			return
 		}
 		var receive string
-		_,e =UnpackWithMarshallerName(buf ,&receive, "json")
-		if e!=nil {
+		_, e = UnpackWithMarshallerName(buf, &receive, "json")
+		if e != nil {
 			fmt.Println(errorx.Wrap(e))
 			t.Fail()
 			return
@@ -170,25 +169,25 @@ func TestPackWithMarshallerName_UnPackWithUnmarshalName(t *testing.T) {
 
 	// toml
 	{
-		buf ,e :=PackWithMarshallerName(Message{
+		buf, e := PackWithMarshallerName(Message{
 			MessageID: 1,
-			Header: nil,
-			Body: struct{
+			Header:    nil,
+			Body: struct {
 				Name string `toml:"name"`
 			}{
 				Name: "hello",
 			},
 		}, "toml")
-		if e!=nil {
+		if e != nil {
 			fmt.Println(errorx.Wrap(e))
 			t.Fail()
 			return
 		}
-		var receive2 struct{
+		var receive2 struct {
 			Name string `toml:"name"`
 		}
-		_,e =UnpackWithMarshallerName(buf ,&receive2, "toml")
-		if e!=nil {
+		_, e = UnpackWithMarshallerName(buf, &receive2, "toml")
+		if e != nil {
 			fmt.Println(errorx.Wrap(e))
 			t.Fail()
 			return
@@ -202,25 +201,25 @@ func TestPackWithMarshallerName_UnPackWithUnmarshalName(t *testing.T) {
 
 	// yaml
 	{
-		buf ,e :=PackWithMarshallerName(Message{
+		buf, e := PackWithMarshallerName(Message{
 			MessageID: 1,
-			Header: nil,
-			Body: struct{
+			Header:    nil,
+			Body: struct {
 				Name string `yaml:"name"`
 			}{
 				Name: "hello",
 			},
 		}, "yaml")
-		if e!=nil {
+		if e != nil {
 			fmt.Println(errorx.Wrap(e))
 			t.Fail()
 			return
 		}
-		var receive2 struct{
+		var receive2 struct {
 			Name string `yaml:"name"`
 		}
-		_,e =UnpackWithMarshallerName(buf ,&receive2, "yaml")
-		if e!=nil {
+		_, e = UnpackWithMarshallerName(buf, &receive2, "yaml")
+		if e != nil {
 			fmt.Println(errorx.Wrap(e))
 			t.Fail()
 			return
@@ -237,19 +236,19 @@ func TestPackWithMarshallerName_UnPackWithUnmarshalName(t *testing.T) {
 		obj := pb.SayHelloRequest{
 			Username: "hello",
 		}
-		buf ,e :=PackWithMarshallerName(Message{
+		buf, e := PackWithMarshallerName(Message{
 			MessageID: 1,
-			Header: nil,
-			Body: &obj,
+			Header:    nil,
+			Body:      &obj,
 		}, "protobuf")
-		if e!=nil {
+		if e != nil {
 			fmt.Println(errorx.Wrap(e))
 			t.Fail()
 			return
 		}
 		var receive pb.SayHelloRequest
-		_,e =UnpackWithMarshallerName(buf ,&receive, "protobuf")
-		if e!=nil {
+		_, e = UnpackWithMarshallerName(buf, &receive, "protobuf")
+		if e != nil {
 			fmt.Println(errorx.Wrap(e))
 			t.Fail()
 			return
@@ -263,4 +262,16 @@ func TestPackWithMarshallerName_UnPackWithUnmarshalName(t *testing.T) {
 }
 func newBytes(a ...byte) []byte {
 	return a
+}
+
+func TestPack(t *testing.T) {
+	PackWithMarshaller(Message{
+		MessageID: 1,
+		Header: map[string]interface{}{
+			"auth": "abc",
+		},
+		Body: map[string]interface{}{
+			"username":"tcpx",
+		},
+	}, JsonMarshaller{})
 }

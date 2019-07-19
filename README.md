@@ -27,6 +27,8 @@ Supporting protocols
     - [2.1 Heartbeat](#21-heartbeat)
     - [2.2 Online/Offline](#22-onlineoffline)
     - [2.3 Graceful](#23-graceful)
+    - [2.4 middleware](#24-middleware)
+    - [2.5 pack-detail](#25-pack-detail)
 - [3. Ussages](#3-ussages)
   - [3.1 How to add middlewares?](#31-how-to-add-middlewares)
   - [3.2 When to use OnMessage callback?](#32-when-to-use-onmessage-callback)
@@ -103,6 +105,7 @@ https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/online-offline
 
 #### 2.3 Graceful
 
+https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/graceful
 
 - Graceful exit
 
@@ -120,7 +123,15 @@ two strategies:
 
 Contains `graceful stop` and `graceful start`. Between them, you can add jobs you want.
 
-https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/graceful
+#### 2.4 middleware
+https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/middleware
+
+It tells usages of using middleware.
+
+#### 2.5 pack-detail
+https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/pack-detail
+
+Provides tcpx pack detail.
 
 ## 3. Ussages
 Now tcpx advises two modes handling stream, using OnMessage requires user handling stream by himself
@@ -413,7 +424,7 @@ srv := tcpx.NewTcpX(tcpx.OtherMarshaller{})
 
 ### 3.5 How client (not only golang) builds expected stream?
 Tcpx now only provide `packx` realized in golang to build a client sender.If you wants to send message from other language client, you'll have two ways:
-1. Be aware of messageID block system and build expected stream in specific language.
+1. Be aware of messageID block system and build expected stream in specific language.Refer -> [2.5 pack-detail](#25-pack-detail).
 2. Using http gateway,refers to **[5. cross-language gateway](#5-cross-language-gateway)**
 
 `messageID block system`:

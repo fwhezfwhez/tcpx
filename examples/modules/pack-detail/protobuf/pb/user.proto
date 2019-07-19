@@ -1,0 +1,8 @@
+// protoc --go_out=. user.proto
+syntax = "proto3";
+
+package pb;
+
+message User {
+  string username = 1;
+}
