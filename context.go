@@ -51,6 +51,9 @@ type Context struct {
 	// `ctx.Online(username)`
 	// `ctx.Offline()`
 	poolRef *ClientPool
+
+    // signal end, after called `ctx.CloseConn()`, it can broadcast all routine related  to this connection
+	recvEnd chan int
 }
 
 // No strategy to ensure username repeat or not , if username exists, it will replace the old connection context in the pool.
@@ -149,6 +152,8 @@ func NewUDPContext(conn net.PacketConn, addr net.Addr, marshaller Marshaller) *C
 
 		Packx:  NewPackx(marshaller),
 		offset: -1,
+
+		recvEnd: make(chan int, 1),
 	}
 }
 
@@ -188,6 +193,10 @@ func (ctx *Context) CloseConn() error {
 		return ctx.PacketConn.Close()
 	case "kcp":
 		return ctx.UDPSession.Close()
+	}
+
+	if ctx.recvEnd!=nil {
+		close(ctx.recvEnd)
 	}
 	if ctx.poolRef != nil {
 		ctx.Offline()
