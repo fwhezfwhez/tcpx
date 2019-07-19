@@ -52,7 +52,7 @@ type Context struct {
 	// `ctx.Offline()`
 	poolRef *ClientPool
 
-    // signal end, after called `ctx.CloseConn()`, it can broadcast all routine related  to this connection
+	// signal end, after called `ctx.CloseConn()`, it can broadcast all routine related  to this connection
 	recvEnd chan int
 }
 
@@ -86,6 +86,9 @@ func (ctx *Context) Online(username string) error {
 		return errors.New("can't use empty username to online")
 	}
 	ctx.SetUsername(username)
+	if ctx.poolRef == nil {
+		return errors.New("ctx.poolRef is nil, did you call 'tcpX.WithBuiltInPool(true)' or 'tcpX.SetPool(pool *tcpx.ClientPool)' yet")
+	}
 	ctx.poolRef.Online(username, ctx)
 	return nil
 }
@@ -195,7 +198,7 @@ func (ctx *Context) CloseConn() error {
 		return ctx.UDPSession.Close()
 	}
 
-	if ctx.recvEnd!=nil {
+	if ctx.recvEnd != nil {
 		close(ctx.recvEnd)
 	}
 	if ctx.poolRef != nil {

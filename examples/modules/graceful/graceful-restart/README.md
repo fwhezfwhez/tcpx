@@ -1,4 +1,4 @@
-## graceful-stop
+## graceful-restart
 
 #### step
 `go run main.go`

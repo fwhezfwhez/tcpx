@@ -316,7 +316,6 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 		}
 	}()
 	listener, err := net.Listen(network, addr)
-	fmt.Println(2, "new listener")
 	if err != nil {
 		return err
 	}
@@ -841,7 +840,6 @@ func (tcpx *TcpX) Stop(closeAllConnection bool) error {
 		for i, v := range tcpx.properties {
 			switch v.Network {
 			case "kcp", "tcp":
-				fmt.Println(1, "closing")
 				tcpx.properties[i].Listener.(net.Listener).Close()
 			case "udp":
 				tcpx.properties[i].Listener.(net.PacketConn).Close()

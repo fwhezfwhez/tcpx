@@ -6,18 +6,13 @@ import (
 	"time"
 
 	"github.com/fwhezfwhez/tcpx"
-	//"tcpx"
 	"log"
+	//"tcpx"
 )
 
 func main() {
 	srv := tcpx.NewTcpX(nil)
-	// srv.WithBroadCastSignal(true)
-	srv.WithBuiltInPool(true)
 
-	srv.OnConnect = func(c *tcpx.Context) {
-		c.Online("hehe")
-	}
 	// start server
 	go func() {
 		fmt.Println("tcp listen on :8080")
