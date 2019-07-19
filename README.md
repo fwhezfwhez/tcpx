@@ -26,6 +26,7 @@ Supporting protocols
 - [2. Example](#2-example)
     - [2.1 Heartbeat](#21-heartbeat)
     - [2.2 Online/Offline](#22-onlineoffline)
+    - [2.3 Graceful](#23-graceful)
 - [3. Ussages](#3-ussages)
   - [3.1 How to add middlewares?](#31-how-to-add-middlewares)
   - [3.2 When to use OnMessage callback?](#32-when-to-use-onmessage-callback)
@@ -99,6 +100,27 @@ tcpx has built-in heartbeat handler. Default heartbeat messageID is 1392.It mean
 
 #### 2.2 Online/Offline
 https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/online-offline
+
+#### 2.3 Graceful
+
+
+- Graceful exit
+
+Catch signal and do jobs arranged
+
+- Graceful stop
+
+two strategies:
+
+1. `closeAllConnection = false` :Stop listen on, but no effect to existed connection
+
+2. `closeAllConnection = true` :Stop listen on, stops all connection including connected clients.
+
+- Graceful restart:
+
+Contains `graceful stop` and `graceful start`. Between them, you can add jobs you want.
+
+https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/graceful
 
 ## 3. Ussages
 Now tcpx advises two modes handling stream, using OnMessage requires user handling stream by himself
