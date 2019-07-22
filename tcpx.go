@@ -797,12 +797,6 @@ func broadcastSignalWatch(ctx *Context, tcpx *TcpX) {
 	}
 }
 
-func online(ctx *Context, tcpx *TcpX) {
-
-}
-func offline(ctx *Context, tcpx *TcpX) {
-
-}
 
 // Before exist do ending jobs
 func (tcpx *TcpX) BeforeExit(f ...func()) {

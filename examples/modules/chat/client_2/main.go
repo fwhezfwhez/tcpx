@@ -116,5 +116,4 @@ func send(msg string, toUser string, conn net.Conn) {
 		panic(e)
 	}
 	conn.Write(buf)
-	panel <- fmt.Sprintf("I: %s", msg)
 }

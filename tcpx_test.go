@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
+	"github.com/fwhezfwhez/tcpx"
 	"github.com/xtaci/kcp-go"
 	"net"
 	"testing"
@@ -352,6 +353,69 @@ func TestTcpX_OnMessage(t *testing.T) {
 			fmt.Println(e.Error())
 			return
 		}
+	}()
+
+	e := <-testResult
+	if e != nil {
+		fmt.Println(e.Error())
+		t.Fail()
+	}
+}
+
+func TestHeartbeat(t *testing.T) {
+	var serverStart = make(chan int, 1)
+	var testResult = make(chan error, 1)
+	go func() {
+		time.Sleep(40 * time.Second)
+		testResult <- nil
+	}()
+
+	// client
+	go func() {
+		<-serverStart
+
+		conn, e := net.Dial("tcp", "localhost:7008")
+
+		if e != nil {
+			testResult <- errorx.Wrap(e)
+			panic(e)
+		}
+		var heartBeat []byte
+		heartBeat, e = PackWithMarshaller(Message{
+			MessageID: DEFAULT_HEARTBEAT_MESSAGEID,
+			Header:    nil,
+			Body:      nil,
+		}, nil)
+		for {
+			_, e = conn.Write(heartBeat)
+			if e != nil {
+				fmt.Println(e.Error())
+				testResult <- errorx.Wrap(e)
+				break
+			}
+			time.Sleep(5 * time.Second)
+		}
+	}()
+
+	// server
+	go func() {
+		go func() {
+			time.Sleep(time.Second * 10)
+			serverStart <- 1
+		}()
+
+		srv := NewTcpX(nil)
+
+		srv.HeartBeatModeDetail(true, 5*time.Second, false, tcpx.DEFAULT_HEARTBEAT_MESSAGEID)
+
+		//srv.RewriteHeartBeatHandler(1300, func(c *tcpx.Context) {
+		//	fmt.Println("rewrite heartbeat handler")
+		//	c.RecvHeartBeat()
+		//})
+
+		tcpx.SetLogMode(tcpx.DEBUG)
+
+		srv.ListenAndServe("tcp", ":7008")
 	}()
 
 	e := <-testResult
