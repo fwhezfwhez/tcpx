@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
-	"github.com/fwhezfwhez/tcpx"
 	"github.com/xtaci/kcp-go"
 	"net"
 	"testing"
@@ -406,14 +405,14 @@ func TestHeartbeat(t *testing.T) {
 
 		srv := NewTcpX(nil)
 
-		srv.HeartBeatModeDetail(true, 5*time.Second, false, tcpx.DEFAULT_HEARTBEAT_MESSAGEID)
+		srv.HeartBeatModeDetail(true, 5*time.Second, false, DEFAULT_HEARTBEAT_MESSAGEID)
 
 		//srv.RewriteHeartBeatHandler(1300, func(c *tcpx.Context) {
 		//	fmt.Println("rewrite heartbeat handler")
 		//	c.RecvHeartBeat()
 		//})
 
-		tcpx.SetLogMode(tcpx.DEBUG)
+		SetLogMode(DEBUG)
 
 		srv.ListenAndServe("tcp", ":7008")
 	}()

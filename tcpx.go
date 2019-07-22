@@ -38,6 +38,11 @@ type TcpX struct {
 	Mux       *Mux
 	Packx     *Packx
 
+	// deadline setting
+	deadLine      time.Time
+	writeDeadLine time.Time
+	readDeadLine  time.Time
+
 	// heartbeat setting
 	HeartBeatOn        bool          // whether start a goroutine to spy on each connection
 	HeatBeatInterval   time.Duration // heartbeat should receive in the interval
@@ -45,7 +50,7 @@ type TcpX struct {
 	ThroughMiddleware  bool          // whether heartbeat go through middleware
 
 	// built-in clientPool
-	// clientPool is defined in github.com/tcpx/clientPool/client-pool.go, you might design your own pool yourself as
+	// clientPool is defined in github.com/tcpx/client-pool.go, you might design your own pool yourself as
 	// long as you set builtInPool = false
 	// - How to add/delete an connection into/from pool?
 	// ```
@@ -57,12 +62,12 @@ type TcpX struct {
 	builtInPool bool
 	pool        *ClientPool
 
-	// external for restart
+	// external for graceful
 	properties []*PropertyCache
 	pLock      *sync.RWMutex
 	state      int // 1- running, 2- stopped
 
-	// broadcast some signal to all connection
+	// external for broadcast
 	withSignals    bool
 	closeAllSignal chan int // used to close all connection
 }
@@ -92,6 +97,27 @@ func (tcpx *TcpX) WithBuiltInPool(yes bool) *TcpX {
 	tcpx.builtInPool = yes
 	tcpx.pool = NewClientPool()
 	return tcpx
+}
+
+// Set deadline
+// This should be set before server start.
+// If you want change deadline while it's running, use ctx.SetDeadline(t time.Time) instead.
+func (tcpx *TcpX) SetDeadline(t time.Time) {
+	tcpx.deadLine = t
+}
+
+// Set read deadline
+// This should be set before server start.
+// If you want change deadline while it's running, use ctx.SetDeadline(t time.Time) instead.
+func (tcpx *TcpX) SetReadDeadline(t time.Time) {
+	tcpx.readDeadLine = t
+}
+
+// Set write deadline
+// This should be set before server start.
+// If you want change deadline while it's running, use ctx.SetDeadline(t time.Time) instead.
+func (tcpx *TcpX) SetWriteDeadline(t time.Time) {
+	tcpx.writeDeadLine = t
 }
 
 // Whether using signal-broadcast.
@@ -333,6 +359,12 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 			log.Println(fmt.Sprintf(err.Error()))
 			break
 		}
+
+		// SetDeadline
+		conn.SetDeadline(tcpx.deadLine)
+		conn.SetReadDeadline(tcpx.readDeadLine)
+		conn.SetWriteDeadline(tcpx.writeDeadLine)
+
 		ctx := NewContext(conn, tcpx.Packx.Marshaller)
 
 		if tcpx.builtInPool {
@@ -413,6 +445,11 @@ func (tcpx *TcpX) ListenAndServeUDP(network, addr string, maxBufferSize ...int) 
 	tcpx.fillProperty(network, addr, conn)
 
 	tcpx.openState()
+
+	conn.SetDeadline(tcpx.deadLine)
+	conn.SetReadDeadline(tcpx.readDeadLine)
+	conn.SetWriteDeadline(tcpx.writeDeadLine)
+
 	// listen to incoming udp packets
 	go func(conn net.PacketConn, tcpx *TcpX) {
 		defer func() {
@@ -464,68 +501,6 @@ func (tcpx *TcpX) ListenAndServeUDP(network, addr string, maxBufferSize ...int) 
 			// per-request scope, middleware's args are request-apart, it can work in parallel goroutines because
 			// different request has different context instance.It's concurrently safe.
 			// Thus we can use it like : `go func(ctx *Context, tcpx *TcpX){...}(ctx, tcpx)`
-			//go func(ctx *Context, tcpx *TcpX) {
-			//	if tcpx.OnMessage != nil {
-			//		// tcpx.Mux.execAllMiddlewares(ctx)
-			//		//tcpx.OnMessage(ctx)
-			//		if ctx.handlers == nil {
-			//			ctx.handlers = make([]func(c *Context), 0, 10)
-			//		}
-			//		ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
-			//		for _, v := range tcpx.Mux.MiddlewareAnchors {
-			//			ctx.handlers = append(ctx.handlers, v.Middleware)
-			//		}
-			//		ctx.handlers = append(ctx.handlers, tcpx.OnMessage)
-			//		if len(ctx.handlers) > 0 {
-			//			ctx.Next()
-			//		}
-			//		ctx.Reset()
-			//	} else {
-			//		messageID, e := tcpx.Packx.MessageIDOf(ctx.Stream)
-			//		if e != nil {
-			//			Logger.Println(errorx.Wrap(e).Error())
-			//			return
-			//		}
-			//		handler, ok := tcpx.Mux.Handlers[messageID]
-			//		if !ok {
-			//			Logger.Println(fmt.Sprintf("messageID %d handler not found", messageID))
-			//			return
-			//		}
-			//
-			//		//handler(ctx)
-			//
-			//		if ctx.handlers == nil {
-			//			ctx.handlers = make([]func(c *Context), 0, 10)
-			//		}
-			//
-			//		// global middleware
-			//		ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
-			//		// anchor middleware
-			//		messageIDAnchorIndex := tcpx.Mux.AnchorIndexOfMessageID(messageID)
-			//		//for _, v := range tcpx.Mux.MiddlewareAnchorMap {
-			//		//	if messageIDAnchorIndex > v.AnchorIndex && messageIDAnchorIndex <= v.ExpireAnchorIndex {
-			//		//		ctx.handlers = append(ctx.handlers, v.Middleware)
-			//		//	}
-			//		//}
-			//
-			//		for _, v := range tcpx.Mux.MiddlewareAnchors {
-			//			if messageIDAnchorIndex > v.AnchorIndex && messageIDAnchorIndex <= v.ExpireAnchorIndex {
-			//				ctx.handlers = append(ctx.handlers, v.Middleware)
-			//			}
-			//		}
-			//
-			//		// self-related middleware
-			//		ctx.handlers = append(ctx.handlers, tcpx.Mux.MessageIDSelfMiddleware[messageID]...)
-			//		// handler
-			//		ctx.handlers = append(ctx.handlers, handler)
-			//
-			//		if len(ctx.handlers) > 0 {
-			//			ctx.Next()
-			//		}
-			//		ctx.Reset()
-			//	}
-			//}(ctx, tcpx)
-
 			go handleMiddleware(ctx, tcpx)
 
 			continue
@@ -581,6 +556,12 @@ func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ...interface{}
 			Logger.Println(err.Error())
 			continue
 		}
+
+		// SetDeadline
+		conn.SetDeadline(tcpx.deadLine)
+		conn.SetReadDeadline(tcpx.readDeadLine)
+		conn.SetWriteDeadline(tcpx.writeDeadLine)
+
 		ctx := NewKCPContext(conn, tcpx.Packx.Marshaller)
 
 		if tcpx.builtInPool {
@@ -668,7 +649,8 @@ func (tcpx *TcpX) ListenAndServeGRPC(network, addr string) error {
 // When middlewares are on iterator, offset and handles are bond in 'ctx',which means when using protocol which
 // shares connection/context, this function should never be used concurrently, otherwise ok.
 // In specific, tcp and kcp should call like `handleMiddleware(ctx, tcpx)`, udp can call like `go handleMiddleware(ctx, tcpx)`,
-// because udp meets no connection, it's no-state protocol.
+// because udp meets no connection, it's no-state protocol. TCP and UDP will risk loss if call like `go handleMiddleware()` because
+// `c.Stream` will risk being rewritten by goroutines.
 //
 // However, this method is not open to call everywhere.
 // When rebuild new protocol server, this will be considerately used.
@@ -797,7 +779,6 @@ func broadcastSignalWatch(ctx *Context, tcpx *TcpX) {
 	}
 }
 
-
 // Before exist do ending jobs
 func (tcpx *TcpX) BeforeExit(f ...func()) {
 	go func() {
@@ -821,7 +802,7 @@ func (tcpx *TcpX) BeforeExit(f ...func()) {
 // Older connections will remain safe and kept in pool.If param 'closeAllConnection' is true, it will not only stop the
 // listener, but also kill all connections(stops their net.Conn, stop all sub-routine, clear the pool)
 func (tcpx *TcpX) Stop(closeAllConnection bool) error {
-     fmt.Println("graceful stop")
+	fmt.Println("graceful stop")
 	if tcpx.State() == STATE_STOP {
 		return errors.New("already stopped")
 	}
@@ -895,7 +876,7 @@ func (tcpx *TcpX) Start() error {
 
 // Graceful Restart = Stop and Start.Besides, you can
 func (tcpx *TcpX) Restart(closeAllConnection bool, beforeStart ... func()) error {
-	if e:=tcpx.Stop(closeAllConnection);e!=nil {
+	if e := tcpx.Stop(closeAllConnection); e != nil {
 		return e
 	}
 
@@ -903,7 +884,7 @@ func (tcpx *TcpX) Restart(closeAllConnection bool, beforeStart ... func()) error
 		v()
 	}
 	// time.Sleep(5 * time.Second)
-	if e:=tcpx.Start();e!=nil{
+	if e := tcpx.Start(); e != nil {
 		return e
 	}
 	return nil
