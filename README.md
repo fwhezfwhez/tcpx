@@ -27,8 +27,9 @@ Supporting protocols
     - [2.1 Heartbeat](#21-heartbeat)
     - [2.2 Online/Offline](#22-onlineoffline)
     - [2.3 Graceful](#23-graceful)
-    - [2.4 middleware](#24-middleware)
-    - [2.5 pack-detail](#25-pack-detail)
+    - [2.4 Middleware](#24-middleware)
+    - [2.5 Pack-detail](#25-pack-detail)
+    - [2.6 Chat](#26-chat)
 - [3. Ussages](#3-ussages)
   - [3.1 How to add middlewares?](#31-how-to-add-middlewares)
   - [3.2 When to use OnMessage callback?](#32-when-to-use-onmessage-callback)
@@ -123,15 +124,20 @@ two strategies:
 
 Contains `graceful stop` and `graceful start`. Between them, you can add jobs you want.
 
-#### 2.4 middleware
+#### 2.4 Middleware
 https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/middleware
 
 It tells usages of using middleware.
 
-#### 2.5 pack-detail
+#### 2.5 Pack-detail
 https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/pack-detail
 
 Provides tcpx pack detail.
+
+#### 2.6 Chat
+https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/chat
+
+It examples a chat using tcpx.
 
 ## 3. Ussages
 Now tcpx advises two modes handling stream, using OnMessage requires user handling stream by himself
