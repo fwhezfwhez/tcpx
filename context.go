@@ -8,6 +8,7 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -228,12 +229,56 @@ func (ctx *Context) CloseConn() error {
 	case "tcp":
 		return ctx.Conn.Close()
 	case "udp":
+
 		return ctx.PacketConn.Close()
 	case "kcp":
 		return ctx.UDPSession.Close()
 	}
 	return nil
 }
+
+// set deadline
+func (ctx *Context) SetDeadline(t time.Time) error {
+	switch ctx.ConnectionProtocolType() {
+	case "tcp":
+		return ctx.Conn.SetDeadline(t)
+	case "udp":
+
+		return ctx.PacketConn.SetDeadline(t)
+	case "kcp":
+		return ctx.UDPSession.SetDeadline(t)
+	}
+	return nil
+}
+
+// set read deadline
+func (ctx *Context) SetReadDeadline(t time.Time) error {
+	switch ctx.ConnectionProtocolType() {
+	case "tcp":
+		return ctx.Conn.SetReadDeadline(t)
+	case "udp":
+
+		return ctx.PacketConn.SetReadDeadline(t)
+	case "kcp":
+		return ctx.UDPSession.SetReadDeadline(t)
+	}
+	return nil
+}
+
+// set write deadline
+func (ctx *Context) SetWriteDeadline(t time.Time) error {
+	switch ctx.ConnectionProtocolType() {
+	case "tcp":
+		return ctx.Conn.SetWriteDeadline(t)
+	case "udp":
+
+		return ctx.PacketConn.SetWriteDeadline(t)
+	case "kcp":
+		return ctx.UDPSession.SetWriteDeadline(t)
+	}
+	return nil
+}
+
 func (ctx *Context) Bind(dest interface{}) (Message, error) {
 	return ctx.Packx.Unpack(ctx.Stream, dest)
 }
