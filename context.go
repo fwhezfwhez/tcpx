@@ -11,7 +11,9 @@ import (
 )
 
 const (
-	ABORT = 2019
+	CONTEXT_ONLINE  = 1
+	CONTEXT_OFFLINE = 2
+	ABORT           = 2019
 )
 
 // Context has two concurrently safe context:
@@ -23,6 +25,8 @@ const (
 type Context struct {
 	// for tcp conn
 	Conn net.Conn
+	// context scope lock
+	L *sync.RWMutex
 
 	// for udp conn
 	PacketConn net.PacketConn
@@ -54,6 +58,10 @@ type Context struct {
 
 	// signal end, after called `ctx.CloseConn()`, it can broadcast all routine related  to this connection
 	recvEnd chan int
+
+	// 1- online, 2- offline
+	// This value will init to 1 by NewContext() and turn 2 by ctx.Close()
+	userState int
 }
 
 // No strategy to ensure username repeat or not , if username exists, it will replace the old connection context in the pool.
@@ -135,6 +143,10 @@ func NewContext(conn net.Conn, marshaller Marshaller) *Context {
 
 		Packx:  NewPackx(marshaller),
 		offset: -1,
+
+		recvEnd:   make(chan int, 1),
+		L:         &sync.RWMutex{},
+		userState: CONTEXT_ONLINE,
 	}
 }
 
@@ -157,6 +169,9 @@ func NewUDPContext(conn net.PacketConn, addr net.Addr, marshaller Marshaller) *C
 		offset: -1,
 
 		recvEnd: make(chan int, 1),
+
+		L:         &sync.RWMutex{},
+		userState: CONTEXT_ONLINE,
 	}
 }
 
@@ -170,6 +185,10 @@ func NewKCPContext(udpSession *kcp.UDPSession, marshaller Marshaller) *Context {
 
 		Packx:  NewPackx(marshaller),
 		offset: -1,
+
+		recvEnd:   make(chan int, 1),
+		L:         &sync.RWMutex{},
+		userState: CONTEXT_ONLINE,
 	}
 }
 
@@ -189,6 +208,22 @@ func (ctx *Context) ConnectionProtocolType() string {
 
 // Close its connection
 func (ctx *Context) CloseConn() error {
+	defer func() {
+
+		if ctx.recvEnd != nil {
+			CloseChanel(func() {
+				close(ctx.recvEnd)
+			})
+		}
+		if ctx.poolRef != nil {
+			ctx.Offline()
+		}
+
+		ctx.L.Lock()
+		defer ctx.L.Unlock()
+		ctx.userState = CONTEXT_OFFLINE
+	}()
+
 	switch ctx.ConnectionProtocolType() {
 	case "tcp":
 		return ctx.Conn.Close()
@@ -196,13 +231,6 @@ func (ctx *Context) CloseConn() error {
 		return ctx.PacketConn.Close()
 	case "kcp":
 		return ctx.UDPSession.Close()
-	}
-
-	if ctx.recvEnd != nil {
-		close(ctx.recvEnd)
-	}
-	if ctx.poolRef != nil {
-		ctx.Offline()
 	}
 	return nil
 }
@@ -421,6 +449,23 @@ func (ctx *Context) isAbort() bool {
 	return false
 }
 
+func (ctx *Context) IsOffline() bool {
+	ctx.L.RLock()
+	defer ctx.L.RUnlock()
+	return ctx.userState == CONTEXT_OFFLINE
+}
+
+func (ctx *Context) IsOnline() bool {
+	if ctx == nil {
+		return false
+	}
+
+	ctx.L.RLock()
+	defer ctx.L.RUnlock()
+
+	return ctx.userState == CONTEXT_ONLINE
+}
+
 // BindWithMarshaller will specific marshaller.
 // in contract, c.Bind() will use its inner packx object marshaller
 func (ctx *Context) BindWithMarshaller(dest interface{}, marshaller Marshaller) (Message, error) {
@@ -464,7 +509,7 @@ func (ctx *Context) SendToUsername(username string, messageID int32, src interfa
 		return errors.New("'ctx.poolRef' is nil, make sure call 'srv.WithBuiltInPool(true)'")
 	}
 	anotherCtx := ctx.poolRef.GetClientPool(username)
-	if anotherCtx == nil {
+	if anotherCtx == nil || anotherCtx.IsOffline() {
 		return errors.New(fmt.Sprintf("username '%s' not found in pool, he/she might get offine", username))
 	}
 	return ctx.SendToConn(anotherCtx, messageID, src, headers...)
@@ -474,4 +519,10 @@ func (ctx *Context) SendToUsername(username string, messageID int32, src interfa
 // Make sure called `srv.WithBuiltInPool(true)`
 func (ctx *Context) SendToConn(anotherCtx *Context, messageID int32, src interface{}, headers ...map[string]interface{}) error {
 	return anotherCtx.Reply(messageID, src, headers...)
+}
+
+func (ctx *Context) GetPoolRef() *ClientPool {
+	ctx.L.RLock()
+	defer ctx.L.RUnlock()
+	return ctx.poolRef
 }

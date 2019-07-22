@@ -30,7 +30,7 @@ func init() {
 		for {
 			select {
 			case msg := <-panel:
-				fmt.Println(msg)
+				fmt.Print(msg)
 			}
 		}
 	}()
@@ -41,7 +41,6 @@ func init() {
 func main() {
 	f := bufio.NewReader(os.Stdin)
 	for {
-		fmt.Println("input:")
 		input, _ := f.ReadString('\n')
 		if len(input) == 1 {
 			continue
@@ -66,24 +65,41 @@ func online(username string, conn net.Conn) {
 
 func Recv(conn net.Conn) {
 	var buf = make([]byte, 500)
+	var e error
 	for {
-		n, e := conn.Read(buf)
+		buf, e = tcpx.FirstBlockOf(conn)
 		if e != nil {
+			fmt.Println(e.Error())
 			os.Exit(0)
 			break
 		}
-		bf, _ := tcpx.BodyBytesOf(buf[:n])
-		type ResponseTo struct {
-			Message  string `json:"message"`
-			FromUser string `json:"from_user"`
+		bf, _ := tcpx.BodyBytesOf(buf)
+		messageID, e := tcpx.MessageIDOf(buf)
+
+		switch messageID {
+		case 400, 200, 500:
+			type ResponseTo struct {
+				Message string `json:"message"`
+			}
+			var rs ResponseTo
+			e = json.Unmarshal(bf, &rs)
+			if e != nil {
+				panic(e)
+			}
+			panel <- fmt.Sprintf("message: %s", rs.Message)
+		case 6:
+			type ResponseTo struct {
+				Message  string `json:"message"`
+				FromUser string `json:"from_user"`
+			}
+			var rs ResponseTo
+			e = json.Unmarshal(bf, &rs)
+			if e != nil {
+				panic(e)
+			}
+			panel <- fmt.Sprintf("%s: %s", rs.FromUser, rs.Message)
 		}
-		var rs ResponseTo
-		fmt.Println(string(bf))
-		e = json.Unmarshal(bf, &rs)
-		if e != nil {
-			panic(e)
-		}
-		panel <- fmt.Sprintf("%s: %s", rs.FromUser, rs.Message)
+
 	}
 }
 

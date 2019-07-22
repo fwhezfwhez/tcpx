@@ -48,10 +48,15 @@ func send(c *tcpx.Context) {
 	if _, e := c.Bind(&req); e != nil {
 		panic(e)
 	}
-	if e := c.SendToUsername(req.ToUser, 6, ResponseTo{
-		Message:  req.Message,
-		FromUser: req.ToUser,
-	}); e != nil {
-		panic(e)
+	anotherCtx := c.GetPoolRef().GetClientPool(req.ToUser)
+	if anotherCtx.IsOnline() {
+		c.SendToUsername(req.ToUser, 6, ResponseTo{
+			Message:  req.Message,
+			FromUser: req.ToUser,
+		})
+	} else {
+		c.JSON(200, ResponseTo{
+			Message: fmt.Sprintf("'%s' is offline", req.ToUser),
+		})
 	}
 }

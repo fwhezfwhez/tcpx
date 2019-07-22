@@ -55,3 +55,13 @@ func Defer(f func(), handlePanicError ...func(interface{})) {
 	}()
 	f()
 }
+
+// CloseChanel(func(){close(chan)})
+func CloseChanel(f func()) {
+	defer func() {
+		if e := recover(); e != nil {
+			// when close(chan) panic from 'close of closed chan' do nothing
+		}
+	}()
+	f()
+}

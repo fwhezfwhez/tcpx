@@ -11,7 +11,6 @@ type ClientPool struct {
 	m       *sync.RWMutex
 }
 
-
 func NewClientPool() *ClientPool {
 	return &ClientPool{
 		Clients: make(map[string]*Context),
@@ -45,11 +44,12 @@ func (cp *ClientPool) Online(username string, ctx *Context) {
 func (cp *ClientPool) Offline(username string) {
 	ctx := cp.GetClientPool(username)
 	if ctx != nil {
-		ctx.CloseConn()
 		cp.DeleteFromClientPool(username)
 	}
 }
 
+// Whether username found in pool.
+// Can't tell whether conn is close or not
 func (cp *ClientPool) isOnline(username string) bool {
 	cp.m.RLock()
 	defer cp.m.RUnlock()
@@ -57,4 +57,3 @@ func (cp *ClientPool) isOnline(username string) bool {
 	_, ok := cp.Clients[username]
 	return ok
 }
-

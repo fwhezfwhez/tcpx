@@ -350,10 +350,11 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 			defer func() {
 				if e := recover(); e != nil {
 					Logger.Println(fmt.Sprintf("recover from panic %v", e))
-					Logger.Println(string(debug.Stack()))
+					// Logger.Println(string(debug.Stack()))
 				}
 			}()
-			defer ctx.Conn.Close()
+			//defer ctx.Conn.Close()
+			defer ctx.CloseConn()
 			if tcpx.OnClose != nil {
 				defer tcpx.OnClose(ctx)
 			}
