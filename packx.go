@@ -90,6 +90,29 @@ func (packx Packx) FirstBlockOf(r io.Reader) ([]byte, error) {
 	return FirstBlockOf(r)
 }
 
+// returns the first block's messageID, header, body marshalled stream, error.
+func UnPackFromReader(r io.Reader) (int32, map[string]interface{}, []byte, error){
+	buf,e:= UnpackToBlockFromReader(r)
+	if e!=nil {
+		return 0, nil, nil, e
+	}
+	
+	messageID, e:= MessageIDOf(buf)
+	if e!=nil {
+		return 0, nil, nil, e
+	}
+
+	header ,e:= HeaderOf(buf)
+	if e!=nil {
+		return 0, nil, nil, e
+	}
+
+	body,e := BodyBytesOf(buf)
+	if e!=nil {
+		return 0, nil, nil, e
+	}
+    return messageID, header, body, nil
+} 
 // Since FirstBlockOf has nothing to do with packx instance, so make it alone,
 // for old usage remaining useful, old packx.FirstBlockOf is still useful
 func FirstBlockOf(r io.Reader) ([]byte, error) {
