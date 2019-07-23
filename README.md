@@ -70,7 +70,7 @@ Make sure run `protoc --version` available.
 https://github.com/fwhezfwhez/tcpx/blob/master/benchmark_test.go
 
 | cases | exec times | cost time per loop | cost mem per loop | cost object num per loop | url |
-|:-----------| :---- |:------|:-------------:|--:|-----|
+|-----------| ---- |------|-------------|-----|-----|
 | OnMessage | 2000000 | 728 ns/op | 1336 B/op | 5 allocs/op| [click to location](https://github.com/fwhezfwhez/tcpx/blob/9c70f4bd5a0042932728ed44681ff70d6a22f7e3/benchmark_test.go#L9) |
 | Mux without middleware | 2000000 | 832 ns/op | 1336 B/op | 5 allocs/op| [click to location](https://github.com/fwhezfwhez/tcpx/blob/9c70f4bd5a0042932728ed44681ff70d6a22f7e3/benchmark_test.go#L17) |
 | Mux with middleware | 2000000 | 870 ns/op | 1336 B/op | 5 allocs/op| [click to location](https://github.com/fwhezfwhez/tcpx/blob/9c70f4bd5a0042932728ed44681ff70d6a22f7e3/benchmark_test.go#L25) |
