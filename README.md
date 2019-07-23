@@ -31,6 +31,7 @@ Supporting protocols
     - [2.4 Middleware](#24-middleware)
     - [2.5 Pack-detail](#25-pack-detail)
     - [2.6 Chat](#26-chat)
+    - [2.7 Raw](#27-raw)
 - [3. Ussages](#3-ussages)
   - [3.1 How to add middlewares?](#31-how-to-add-middlewares)
   - [3.2 When to use OnMessage callback?](#32-when-to-use-onmessage-callback)
@@ -148,6 +149,11 @@ Provides tcpx pack detail.
 https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/chat
 
 It examples a chat using tcpx.
+
+#### 2.7 Raw
+https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/raw
+
+It examples how to send stream without rule, nothing to do with `messageID system`. You can send all stream you want. Global middleware and anchor middleware are still working as the example said.
 
 ## 3. Ussages
 Now tcpx advises two modes handling stream, using OnMessage requires user handling stream by himself
@@ -469,11 +475,14 @@ ruby:
 Welcome to provides all language pack example via pull request, you can valid you result stream refers to unpack http gateway **[5. cross-language gateway](#5-cross-language-gateway)**，
 
 ### 3.6 Can user design his own message rule rather than tcpx.Message pack rule?
-It's on developing. future tcpx will support two other pack rule:
-1. Based on messageID block system, users design inner protocols in mesesage.Body.
-2. Completely different from messageID block system, users redesign stream rule.
+Yes! But you can't share the advantages of messageID usage.
 
-messageID block system can refer to **[3.5 How client (not only golang) builds expected stream?](#35-how-client-not-only-golang-builds-expected-stream)**.
+way 1: Refer to [2.7 Raw](#27-raw).In this case, you must start another port and use `srv.HandleRaw`.
+
+If you have your own format stream style, which different from messageID system, you can do it like:
+
+way 2: developing……
+
 
 ### 3.7 How to separate handlers?
 tcpx's official advised routing way is separating handlers by messageID, like

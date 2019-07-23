@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
 	"github.com/xtaci/kcp-go"
+	"io"
 	"net"
 	"strings"
 	"sync"
@@ -63,6 +64,10 @@ type Context struct {
 	// 1- online, 2- offline
 	// This value will init to 1 by NewContext() and turn 2 by ctx.Close()
 	userState int
+
+	// for raw message
+	ConnReader io.Reader
+	ConnWriter io.Writer
 }
 
 // No strategy to ensure username repeat or not , if username exists, it will replace the old connection context in the pool.
@@ -205,6 +210,20 @@ func (ctx *Context) ConnectionProtocolType() string {
 		return "kcp"
 	}
 	return "tcp"
+}
+
+func (ctx *Context) InitReaderAndWriter() error {
+	switch ctx.ConnectionProtocolType() {
+	case "tcp":
+		ctx.ConnReader = ctx.Conn
+		ctx.ConnWriter = ctx.Conn
+	case "kcp":
+		ctx.ConnReader = ctx.UDPSession
+		ctx.ConnWriter = ctx.UDPSession
+	default:
+		return fmt.Errorf("only accept tcp/kcp but got %s", ctx.ConnectionProtocolType())
+	}
+	return nil
 }
 
 // Close its connection

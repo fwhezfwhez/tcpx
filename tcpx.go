@@ -70,6 +70,10 @@ type TcpX struct {
 	// external for broadcast
 	withSignals    bool
 	closeAllSignal chan int // used to close all connection
+
+	// external for handle any stream
+	// only support tcp/kcp
+	HandleRaw func(c *Context)
 }
 
 type PropertyCache struct {
@@ -330,6 +334,72 @@ func (tcpx *TcpX) fillProperty(network, addr string, listener interface{}) {
 		Listener: listener,
 	}
 	tcpx.properties = append(tcpx.properties, prop)
+}
+
+// raw
+func (tcpx *TcpX) ListenAndServeRaw(network, addr string) error {
+	defer func() {
+		if e := recover(); e != nil {
+			Logger.Println(fmt.Sprintf("recover from panic %v", e))
+			Logger.Println(string(debug.Stack()))
+			return
+		}
+	}()
+	listener, err := net.Listen(network, addr)
+	if err != nil {
+		return err
+	}
+	tcpx.fillProperty(network, addr, listener)
+
+	defer listener.Close()
+	tcpx.openState()
+	for {
+
+		if tcpx.State() == STATE_STOP {
+			break
+		}
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Println(fmt.Sprintf(err.Error()))
+			break
+		}
+
+		// SetDeadline
+		conn.SetDeadline(tcpx.deadLine)
+		conn.SetReadDeadline(tcpx.readDeadLine)
+		conn.SetWriteDeadline(tcpx.writeDeadLine)
+
+		ctx := NewContext(conn, tcpx.Packx.Marshaller)
+
+		if tcpx.builtInPool {
+			ctx.poolRef = tcpx.pool
+		}
+
+		if tcpx.OnConnect != nil {
+			tcpx.OnConnect(ctx)
+		}
+
+		go broadcastSignalWatch(ctx, tcpx)
+		go heartBeatWatch(ctx, tcpx)
+
+		go func(ctx *Context, tcpx *TcpX) {
+			defer func() {
+				if e := recover(); e != nil {
+					Logger.Println(fmt.Sprintf("recover from panic %v", e))
+					// Logger.Println(string(debug.Stack()))
+				}
+			}()
+			//defer ctx.Conn.Close()
+			defer ctx.CloseConn()
+			if tcpx.OnClose != nil {
+				defer tcpx.OnClose(ctx)
+			}
+
+			ctx.InitReaderAndWriter()
+			handleRaw(ctx, tcpx)
+		}(ctx, tcpx)
+	}
+	return nil
 }
 
 // tcp
@@ -609,7 +679,7 @@ func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ...interface{}
 
 				// Can't used prefixed by `go`
 				// because requests on a same connection share context
-				handleMiddleware(ctx, tcpx)
+				handleRaw(ctx, tcpx)
 
 			}
 		}(ctx, tcpx)
@@ -720,6 +790,21 @@ func handleMiddleware(ctx *Context, tcpx *TcpX) {
 		}
 		ctx.Reset()
 	}
+}
+
+func handleRaw(ctx *Context, tcpx *TcpX) {
+	if ctx.handlers == nil {
+		ctx.handlers = make([]func(c *Context), 0, 10)
+	}
+	ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
+	for _, v := range tcpx.Mux.MiddlewareAnchors {
+		ctx.handlers = append(ctx.handlers, v.Middleware)
+	}
+	ctx.handlers = append(ctx.handlers, tcpx.HandleRaw)
+	if len(ctx.handlers) > 0 {
+		ctx.Next()
+	}
+	ctx.Reset()
 }
 
 // Start a goroutine to watch heartbeat for a connection

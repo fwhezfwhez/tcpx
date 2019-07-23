@@ -423,3 +423,45 @@ func TestHeartbeat(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestHandleRaw(t *testing.T) {
+	var srvStart = make(chan int, 1)
+
+	go func() {
+		time.Sleep(4 * time.Second)
+		srvStart <- 1
+	}()
+	go func() {
+		srv := NewTcpX(nil)
+		srv.UseGlobal(func(c *Context) {
+			fmt.Println("before raw message in")
+		})
+		srv.Use("middle-1", func(c *Context) {
+			fmt.Println("use middleware 1")
+		})
+		srv.HandleRaw = func(c *Context) {
+			var buf = make([]byte, 500)
+			var n int
+			var e error
+			for {
+				n, e = c.ConnReader.Read(buf)
+				if e != nil {
+					fmt.Println(e.Error())
+					return
+				}
+				fmt.Println("receive:", buf[:n])
+				c.ConnWriter.Write([]byte("hello,I am server."))
+			}
+		}
+		srv.ListenAndServeRaw("tcp", ":6631")
+	}()
+	<-srvStart
+	conn, e := net.Dial("tcp", "localhost:6631")
+	if e != nil {
+		fmt.Println(e.Error())
+		return
+	}
+	conn.Write([]byte("hello,I am client."))
+
+	time.Sleep(10 * time.Second)
+}
