@@ -512,12 +512,10 @@ func TestConCurrentTCP(t *testing.T) {
 
 		srv.AddHandler(2, func(c *Context) {
 			time.Sleep(15 * time.Second)
-			fmt.Println(string(c.Stream))
 			c.Reply(10086, fmt.Sprintf("hello, I'm server"))
 		})
 		srv.AddHandler(1, func(c *Context) {
 			time.Sleep(15 * time.Second)
-			fmt.Println(string(c.Stream))
 			c.Reply(10086, fmt.Sprintf("hello, I'm server"))
 		})
 		go func() {
