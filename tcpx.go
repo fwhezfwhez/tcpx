@@ -396,7 +396,9 @@ func (tcpx *TcpX) ListenAndServeRaw(network, addr string) error {
 			}
 
 			ctx.InitReaderAndWriter()
-			handleRaw(ctx, tcpx)
+
+			tmpContext := copyContext(*ctx)
+			handleRaw(tmpContext, tcpx)
 		}(ctx, tcpx)
 	}
 	return nil
@@ -679,8 +681,9 @@ func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ...interface{}
 
 				// Can't used prefixed by `go`
 				// because requests on a same connection share context
-				handleRaw(ctx, tcpx)
 
+				tmpContext := copyContext(*ctx)
+				go handleMiddleware(tmpContext, tcpx)
 			}
 		}(ctx, tcpx)
 	}
