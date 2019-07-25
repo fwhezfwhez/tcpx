@@ -69,7 +69,7 @@ type TcpX struct {
 
 	// external for broadcast
 	withSignals    bool
-	closeAllSignal chan int // used to close all connection
+	closeAllSignal chan int // used to close all connection's spying goroutines, srv instance controls it
 
 	// external for handle any stream
 	// only support tcp/kcp
@@ -396,7 +396,9 @@ func (tcpx *TcpX) ListenAndServeRaw(network, addr string) error {
 			}
 
 			ctx.InitReaderAndWriter()
-			handleRaw(ctx, tcpx)
+
+			tmpContext := copyContext(*ctx)
+			handleRaw(tmpContext, tcpx)
 		}(ctx, tcpx)
 	}
 	return nil
@@ -470,8 +472,8 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 					Logger.Println(e)
 					break
 				}
-
-				handleMiddleware(ctx, tcpx)
+				tmpContext := copyContext(*ctx)
+				go handleMiddleware(tmpContext, tcpx)
 				continue
 			}
 		}(ctx, tcpx)
@@ -679,8 +681,9 @@ func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ...interface{}
 
 				// Can't used prefixed by `go`
 				// because requests on a same connection share context
-				handleRaw(ctx, tcpx)
 
+				tmpContext := copyContext(*ctx)
+				go handleMiddleware(tmpContext, tcpx)
 			}
 		}(ctx, tcpx)
 	}
@@ -716,14 +719,9 @@ func (tcpx *TcpX) ListenAndServeGRPC(network, addr string) error {
 }
 
 // This method is abstracted from ListenAndServe[,TCP,UDP] for handling middlewares.
-// When middlewares are on iterator, offset and handles are bond in 'ctx',which means when using protocol which
-// shares connection/context, this function should never be used concurrently, otherwise ok.
-// In specific, tcp and kcp should call like `handleMiddleware(ctx, tcpx)`, udp can call like `go handleMiddleware(ctx, tcpx)`,
-// because udp meets no connection, it's no-state protocol. TCP and UDP will risk loss if call like `go handleMiddleware()` because
-// `c.Stream` will risk being rewritten by goroutines.
+// can perfectly work concurrently
 //
-// However, this method is not open to call everywhere.
-// When rebuild new protocol server, this will be considerately used.
+// However, this method is not open export for outer uset. When rebuild new protocol server, this will be considerately used.
 func handleMiddleware(ctx *Context, tcpx *TcpX) {
 	if tcpx.OnMessage != nil {
 		// tcpx.Mux.execAllMiddlewares(ctx)

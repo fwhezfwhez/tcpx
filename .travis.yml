@@ -22,7 +22,8 @@ before_install:
   - go get gopkg.in/yaml.v2
 
 script:
-  - go test -race -coverprofile=coverage.txt -covermode=atomic
+  # - go test -race -coverprofile=coverage.txt -covermode=atomic
+  - go test -coverprofile=coverage.txt -covermode=atomic
   - go test ./
 
 after_success:

@@ -12,11 +12,9 @@ import (
 	"time"
 )
 
-const (
-	CONTEXT_ONLINE  = 1
-	CONTEXT_OFFLINE = 2
-	ABORT           = 2019
-)
+const CONTEXT_ONLINE = 1
+const CONTEXT_OFFLINE = 2
+const ABORT = 2019
 
 // Context has two concurrently safe context:
 // PerConnectionContext is used for connection, once the connection is built ,this is connection scope.
@@ -42,14 +40,7 @@ type Context struct {
 	PerRequestContext    *sync.Map
 
 	// for pack and unpack
-	Packx  *Packx
-	Stream []byte
-
-	// used to control middleware abort or next
-	// offset == ABORT, abort
-	// else next
-	offset   int
-	handlers []func(*Context)
+	Packx *Packx
 
 	// saves a pool-ref from TcpX instance
 	// only when TcpX instance has set builtInPool true, poolRef is not nil
@@ -63,11 +54,49 @@ type Context struct {
 
 	// 1- online, 2- offline
 	// This value will init to 1 by NewContext() and turn 2 by ctx.Close()
-	userState int
+	// This value is shared among request context, so it must be pointer int,not value int
+	userState *int
 
 	// for raw message
 	ConnReader io.Reader
 	ConnWriter io.Writer
+
+	// for request scpope,Stream, offset, handlers will be copy when new request comes(same connection)
+
+	Stream []byte
+	// used to control middleware abort or next
+	// offset == ABORT, abort
+	// else next
+	offset   int
+	handlers []func(*Context)
+}
+
+// share some pointer properties With former context, but has independent Stream and handlers
+// Not locked. Caller should lock it.
+func copyContext(ctx Context) *Context {
+	var copyHandlers = make([]func(*Context), len(ctx.handlers))
+	for i, _ := range copyHandlers {
+		copyHandlers[i] = ctx.handlers[i]
+	}
+
+	return &Context{
+		Conn:                 ctx.Conn,
+		L:                    ctx.L,
+		PacketConn:           ctx.PacketConn,
+		Addr:                 ctx.Addr,
+		UDPSession:           ctx.UDPSession,
+		PerConnectionContext: ctx.PerConnectionContext,
+		PerRequestContext:    ctx.PerConnectionContext,
+		Packx:                ctx.Packx,
+		Stream:               ctx.Stream,
+		offset:               ctx.offset,
+		handlers:             copyHandlers,
+		poolRef:              ctx.poolRef,
+		recvEnd:              ctx.recvEnd,
+		userState:            ctx.userState,
+		ConnReader:           ctx.ConnReader,
+		ConnWriter:           ctx.ConnWriter,
+	}
 }
 
 // No strategy to ensure username repeat or not , if username exists, it will replace the old connection context in the pool.
@@ -142,6 +171,7 @@ func (ctx *Context) Offline() error {
 // New a context.
 // This is used for new a context for tcp server.
 func NewContext(conn net.Conn, marshaller Marshaller) *Context {
+	var online = CONTEXT_ONLINE
 	return &Context{
 		Conn:                 conn,
 		PerConnectionContext: &sync.Map{},
@@ -152,7 +182,7 @@ func NewContext(conn net.Conn, marshaller Marshaller) *Context {
 
 		recvEnd:   make(chan int, 1),
 		L:         &sync.RWMutex{},
-		userState: CONTEXT_ONLINE,
+		userState: &online,
 	}
 }
 
@@ -165,6 +195,7 @@ func NewTCPContext(conn net.Conn, marshaller Marshaller) *Context {
 // New a context.
 // This is used for new a context for udp server.
 func NewUDPContext(conn net.PacketConn, addr net.Addr, marshaller Marshaller) *Context {
+	var online = CONTEXT_ONLINE
 	return &Context{
 		PacketConn:           conn,
 		Addr:                 addr,
@@ -177,13 +208,14 @@ func NewUDPContext(conn net.PacketConn, addr net.Addr, marshaller Marshaller) *C
 		recvEnd: make(chan int, 1),
 
 		L:         &sync.RWMutex{},
-		userState: CONTEXT_ONLINE,
+		userState: &online,
 	}
 }
 
 // New a context.
 // This is used for new a context for kcp server.
 func NewKCPContext(udpSession *kcp.UDPSession, marshaller Marshaller) *Context {
+	var online = CONTEXT_ONLINE
 	return &Context{
 		UDPSession:           udpSession,
 		PerConnectionContext: nil,
@@ -194,7 +226,7 @@ func NewKCPContext(udpSession *kcp.UDPSession, marshaller Marshaller) *Context {
 
 		recvEnd:   make(chan int, 1),
 		L:         &sync.RWMutex{},
-		userState: CONTEXT_ONLINE,
+		userState: &online,
 	}
 }
 
@@ -241,7 +273,7 @@ func (ctx *Context) CloseConn() error {
 
 		ctx.L.Lock()
 		defer ctx.L.Unlock()
-		ctx.userState = CONTEXT_OFFLINE
+		*(ctx.userState) = CONTEXT_OFFLINE
 	}()
 
 	switch ctx.ConnectionProtocolType() {
@@ -516,7 +548,7 @@ func (ctx *Context) isAbort() bool {
 func (ctx *Context) IsOffline() bool {
 	ctx.L.RLock()
 	defer ctx.L.RUnlock()
-	return ctx.userState == CONTEXT_OFFLINE
+	return *(ctx.userState) == CONTEXT_OFFLINE
 }
 
 func (ctx *Context) IsOnline() bool {
@@ -527,7 +559,7 @@ func (ctx *Context) IsOnline() bool {
 	ctx.L.RLock()
 	defer ctx.L.RUnlock()
 
-	return ctx.userState == CONTEXT_ONLINE
+	return *(ctx.userState) == CONTEXT_ONLINE
 }
 
 // BindWithMarshaller will specific marshaller.

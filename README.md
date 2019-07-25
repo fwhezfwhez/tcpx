@@ -72,9 +72,9 @@ https://github.com/fwhezfwhez/tcpx/blob/master/benchmark_test.go
 
 | cases | exec times | cost time per loop | cost mem per loop | cost object num per loop | url |
 |-----------| ---- |------|-------------|-----|-----|
-| OnMessage | 2000000 | 728 ns/op | 1336 B/op | 5 allocs/op| [click to location](https://github.com/fwhezfwhez/tcpx/blob/9c70f4bd5a0042932728ed44681ff70d6a22f7e3/benchmark_test.go#L9) |
-| Mux without middleware | 2000000 | 832 ns/op | 1336 B/op | 5 allocs/op| [click to location](https://github.com/fwhezfwhez/tcpx/blob/9c70f4bd5a0042932728ed44681ff70d6a22f7e3/benchmark_test.go#L17) |
-| Mux with middleware | 2000000 | 870 ns/op | 1336 B/op | 5 allocs/op| [click to location](https://github.com/fwhezfwhez/tcpx/blob/9c70f4bd5a0042932728ed44681ff70d6a22f7e3/benchmark_test.go#L25) |
+| OnMessage | 2000000 | 643 ns/op | 1368 B/op | 5 allocs/op| [click to location](https://github.com/fwhezfwhez/tcpx/blob/9c70f4bd5a0042932728ed44681ff70d6a22f7e3/benchmark_test.go#L9) |
+| Mux without middleware | 2000000 | 761 ns/op | 1368 B/op | 5 allocs/op| [click to location](https://github.com/fwhezfwhez/tcpx/blob/9c70f4bd5a0042932728ed44681ff70d6a22f7e3/benchmark_test.go#L17) |
+| Mux with middleware | 2000000 | 768 ns/op | 1368 B/op | 5 allocs/op| [click to location](https://github.com/fwhezfwhez/tcpx/blob/9c70f4bd5a0042932728ed44681ff70d6a22f7e3/benchmark_test.go#L25) |
 
 ## 2. Example
 https://github.com/fwhezfwhez/tcpx/tree/master/examples/sayHello
@@ -154,6 +154,18 @@ It examples a chat using tcpx.
 https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/raw
 
 It examples how to send stream without rule, nothing to do with `messageID system`. You can send all stream you want. Global middleware and anchor middleware are still working as the example said.
+
+#### 2.8 ClientPool
+https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/online-offline
+
+Example shares with 2.2.
+
+Tcpx has its built-in pool to help manage online and offline users. Note that :
+
+- To use built-in pool, you need to run `srv.WithBuiltInPool(true)`.
+- To online/offline a user, you can do it like `ctx.Offline()`,`ctx.Online(username string)`.
+
+Official built-in pool will not extend much. If it doesn't fit your requirement, you should design your own pool.
 
 ## 3. Ussages
 Now tcpx advises two modes handling stream, using OnMessage requires user handling stream by himself

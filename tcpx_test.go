@@ -6,6 +6,7 @@ import (
 	"github.com/fwhezfwhez/errorx"
 	"github.com/xtaci/kcp-go"
 	"net"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -464,4 +465,77 @@ func TestHandleRaw(t *testing.T) {
 	conn.Write([]byte("hello,I am client."))
 
 	time.Sleep(10 * time.Second)
+}
+
+func TestConCurrentTCP(t *testing.T) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	var serverStart = make(chan int, 1)
+	var testResult = make(chan error, 100)
+
+	// 100 client  100 messages
+	go func() {
+		<-serverStart
+
+		for i := 0; i < 150; i++ {
+			conn, err := net.Dial("tcp", "localhost:6632")
+			if err != nil {
+				testResult <- errorx.Wrap(err)
+				fmt.Println(errorx.Wrap(err).Error())
+				return
+			}
+
+			buf, e := PackJSON.Pack(2, fmt.Sprintf("hello, I'm client %d call 2", i))
+			if e != nil {
+				testResult <- errorx.Wrap(e)
+				fmt.Println(errorx.Wrap(e).Error())
+				return
+			}
+			buf2, e2 := PackJSON.Pack(1, "hello, I'm client call 1")
+			if e2 != nil {
+				testResult <- errorx.Wrap(e)
+				fmt.Println(errorx.Wrap(e).Error())
+				return
+			}
+			for j := 0; j < 200; j++ {
+				go func(j int) {
+					conn.Write(buf)
+					conn.Write(buf2)
+				}(j)
+			}
+		}
+
+	}()
+
+	// server
+	go func() {
+		srv := NewTcpX(JsonMarshaller{})
+
+		srv.AddHandler(2, func(c *Context) {
+			time.Sleep(15 * time.Second)
+			c.Reply(10086, fmt.Sprintf("hello, I'm server"))
+		})
+		srv.AddHandler(1, func(c *Context) {
+			time.Sleep(15 * time.Second)
+			c.Reply(10086, fmt.Sprintf("hello, I'm server"))
+		})
+		go func() {
+			time.Sleep(time.Second * 10)
+			serverStart <- 1
+		}()
+		e := srv.ListenAndServe("tcp", ":6632")
+		if e != nil {
+			testResult <- errorx.Wrap(e)
+			fmt.Println(e.Error())
+			return
+		}
+	}()
+
+	select {
+	case <-time.After(35 * time.Second):
+	case e := <-testResult:
+		if e != nil {
+			fmt.Println(e.Error())
+			t.Fail()
+		}
+	}
 }
