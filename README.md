@@ -155,6 +155,18 @@ https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/raw
 
 It examples how to send stream without rule, nothing to do with `messageID system`. You can send all stream you want. Global middleware and anchor middleware are still working as the example said.
 
+#### 2.8 ClientPool
+https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/online-offline
+
+Example shares with 2.2.
+
+Tcpx has its built-in pool to help manage online and offline users. Note that :
+
+- To use built-in pool, you need to run `srv.WithBuiltInPool(true)`.
+- To online/offline a user, you can do it like `ctx.Offline()`,`ctx.Online(username string)`.
+
+Official built-in pool will not extend much. If it doesn't fit your requirement, you should design your own pool.
+
 ## 3. Ussages
 Now tcpx advises two modes handling stream, using OnMessage requires user handling stream by himself
 

@@ -470,8 +470,8 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 					Logger.Println(e)
 					break
 				}
-
-				handleMiddleware(ctx, tcpx)
+				tmpContext := copyContext(*ctx)
+				go handleMiddleware(tmpContext, tcpx)
 				continue
 			}
 		}(ctx, tcpx)
