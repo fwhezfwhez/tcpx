@@ -9,6 +9,7 @@ import (
 )
 
 var appSecret = "hello"
+
 func main() {
 	srv := tcpx.NewTcpX(nil)
 	tcpx.SetLogMode(tcpx.DEBUG)
@@ -26,7 +27,7 @@ func main() {
 		}
 		c.RecvAuthPass()
 	})
-    fmt.Println("tcp start on :8104")
+	fmt.Println("tcp start on :8104")
 	srv.ListenAndServe("tcp", ":8104")
 }
 
@@ -37,7 +38,7 @@ type Auth struct {
 }
 
 func Encrypt(a Auth, secret string) string {
-	return tcpx.MD5(a.F1 + a.F2 + secret)
+	return MD5(a.F1 + a.F2 + secret)
 }
 func MD5(rawMsg string) string {
 	data := []byte(rawMsg)
