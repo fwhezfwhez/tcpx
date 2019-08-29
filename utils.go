@@ -1,6 +1,7 @@
 package tcpx
 
 import (
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
@@ -64,4 +65,10 @@ func CloseChanel(f func()) {
 		}
 	}()
 	f()
+}
+func MD5(rawMsg string) string {
+	data := []byte(rawMsg)
+	has := md5.Sum(data)
+	md5str1 := fmt.Sprintf("%x", has)
+	return strings.ToUpper(md5str1)
 }
