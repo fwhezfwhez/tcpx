@@ -903,6 +903,7 @@ func authWatch(ctx *Context, tcpx *TcpX) {
 	if tcpx.auth {
 		select {
 		case <-time.After(tcpx.authDeadline):
+			Logger.Println("connection auth time out, closed")
 			ctx.CloseConn()
 			return
 		case v := <-ctx.AuthChan():
