@@ -24,8 +24,10 @@ import (
 
 const (
 	DEFAULT_HEARTBEAT_MESSAGEID = 1392
-	STATE_RUNNING               = 1
-	STATE_STOP                  = 2
+	DEFAULT_AUTH_MESSAGEID      = 1393
+
+	STATE_RUNNING = 1
+	STATE_STOP    = 2
 )
 
 // OnMessage and mux are opposite.
@@ -61,6 +63,13 @@ type TcpX struct {
 	// ``
 	builtInPool bool
 	pool        *ClientPool
+
+	// when auth is set true by `srv.WithAuth(true)`, server will start a goroutine to wait for auth handler signal.
+	// If not receive ideal signal in auth-deadline, the established connection will be close forcely by server.
+	auth                  bool
+	authDeadline          time.Duration
+	AuthMessageID         int32
+	AuthThroughMiddleware bool // whether auth handler go through middleware
 
 	// external for graceful
 	properties []*PropertyCache
@@ -100,6 +109,19 @@ func NewTcpX(marshaller Marshaller) *TcpX {
 func (tcpx *TcpX) WithBuiltInPool(yes bool) *TcpX {
 	tcpx.builtInPool = yes
 	tcpx.pool = NewClientPool()
+	return tcpx
+}
+
+func (tcpx *TcpX) WithAuthDetail(yes bool, duration time.Duration, throughMiddleware bool, messageID int32, f func(c *Context)) *TcpX {
+	tcpx.auth = yes
+	tcpx.authDeadline = duration
+
+	tcpx.AuthMessageID = messageID
+	tcpx.AuthThroughMiddleware = throughMiddleware
+
+	if yes {
+		tcpx.AddHandler(messageID, f)
+	}
 	return tcpx
 }
 
@@ -447,8 +469,16 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 			tcpx.OnConnect(ctx)
 		}
 
-		go broadcastSignalWatch(ctx, tcpx)
-		go heartBeatWatch(ctx, tcpx)
+		if tcpx.withSignals {
+			go broadcastSignalWatch(ctx, tcpx)
+		}
+
+		if tcpx.HeartBeatOn {
+			go heartBeatWatch(ctx, tcpx)
+		}
+		if tcpx.auth {
+			go authWatch(ctx, tcpx)
+		}
 
 		go func(ctx *Context, tcpx *TcpX) {
 			defer func() {
@@ -755,6 +785,11 @@ func handleMiddleware(ctx *Context, tcpx *TcpX) {
 			return
 		}
 
+		if messageID == tcpx.AuthMessageID && !tcpx.AuthThroughMiddleware {
+			handler(ctx)
+			return
+		}
+
 		if ctx.handlers == nil {
 			ctx.handlers = make([]func(c *Context), 0, 10)
 		}
@@ -859,6 +894,34 @@ func broadcastSignalWatch(ctx *Context, tcpx *TcpX) {
 				return
 			}
 		}
+	}
+}
+
+// Each connection will start this as goroutine when tcpx.auth is true.
+// It will start a handler to wait for an auth signal.
+func authWatch(ctx *Context, tcpx *TcpX) {
+	if tcpx.auth {
+		select {
+		case <-time.After(tcpx.authDeadline):
+			ctx.CloseConn()
+			return
+		case v := <-ctx.AuthChan():
+			if v >= 0 {
+				// auth pass
+				return
+			} else {
+				// auth fail
+				Logger.Println("connection auth fail, closed")
+				ctx.CloseConn()
+				return
+			}
+		case <-tcpx.closeAllSignal:
+			ctx.CloseConn()
+			return
+		case <-ctx.recvEnd:
+			return
+		}
+
 	}
 }
 

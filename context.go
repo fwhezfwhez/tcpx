@@ -49,8 +49,11 @@ type Context struct {
 	// `ctx.Offline()`
 	poolRef *ClientPool
 
-	// signal end, after called `ctx.CloseConn()`, it can broadcast all routine related  to this connection
+	// signal end, after called `ctx.CloseConn()`, it can broadcast all routine related  to this connection.
+	// It will ensure all related goroutine to die.
 	recvEnd chan int
+
+	recvAuth chan int
 
 	// 1- online, 2- offline
 	// This value will init to 1 by NewContext() and turn 2 by ctx.Close()
@@ -93,6 +96,7 @@ func copyContext(ctx Context) *Context {
 		handlers:             copyHandlers,
 		poolRef:              ctx.poolRef,
 		recvEnd:              ctx.recvEnd,
+		recvAuth:             ctx.recvAuth,
 		userState:            ctx.userState,
 		ConnReader:           ctx.ConnReader,
 		ConnWriter:           ctx.ConnWriter,
@@ -180,7 +184,9 @@ func NewContext(conn net.Conn, marshaller Marshaller) *Context {
 		Packx:  NewPackx(marshaller),
 		offset: -1,
 
-		recvEnd:   make(chan int, 1),
+		recvEnd:  make(chan int, 1),
+		recvAuth: make(chan int, 1),
+
 		L:         &sync.RWMutex{},
 		userState: &online,
 	}
@@ -205,7 +211,8 @@ func NewUDPContext(conn net.PacketConn, addr net.Addr, marshaller Marshaller) *C
 		Packx:  NewPackx(marshaller),
 		offset: -1,
 
-		recvEnd: make(chan int, 1),
+		recvEnd:  make(chan int, 1),
+		recvAuth: make(chan int, 1),
 
 		L:         &sync.RWMutex{},
 		userState: &online,
@@ -224,7 +231,9 @@ func NewKCPContext(udpSession *kcp.UDPSession, marshaller Marshaller) *Context {
 		Packx:  NewPackx(marshaller),
 		offset: -1,
 
-		recvEnd:   make(chan int, 1),
+		recvEnd:  make(chan int, 1),
+		recvAuth: make(chan int, 1),
+
 		L:         &sync.RWMutex{},
 		userState: &online,
 	}
@@ -252,6 +261,11 @@ func (ctx *Context) InitReaderAndWriter() error {
 	case "kcp":
 		ctx.ConnReader = ctx.UDPSession
 		ctx.ConnWriter = ctx.UDPSession
+
+	// udp not support writer and reader
+	//case "udp":
+	//	ctx.ConnReader = ctx.PacketConn
+	//	ctx.ConnWriter = ctx.PacketConn
 	default:
 		return fmt.Errorf("only accept tcp/kcp but got %s", ctx.ConnectionProtocolType())
 	}
@@ -621,4 +635,17 @@ func (ctx *Context) GetPoolRef() *ClientPool {
 	ctx.L.RLock()
 	defer ctx.L.RUnlock()
 	return ctx.poolRef
+}
+
+func (ctx *Context) AuthChan() <-chan int {
+	return ctx.recvAuth
+}
+
+func (ctx *Context) RecvAuthPass() {
+	const PASS = 1
+	ctx.recvAuth <- PASS
+}
+func (ctx *Context) RecvAuthDeny() {
+	const DENY = -1
+	ctx.recvAuth <- DENY
 }
