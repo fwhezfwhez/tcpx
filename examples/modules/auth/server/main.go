@@ -3,8 +3,8 @@ package main
 import (
 	"crypto/md5"
 	"fmt"
+	"github.com/fwhezfwhez/tcpx"
 	"strings"
-	"tcpx"
 	"time"
 )
 
