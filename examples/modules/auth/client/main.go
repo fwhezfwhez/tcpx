@@ -3,10 +3,10 @@ package main
 import (
 	"crypto/md5"
 	"fmt"
+	"github.com/fwhezfwhez/tcpx"
 	"net"
 	"os"
 	"strings"
-	"tcpx"
 )
 
 //var appSecret = "hello"

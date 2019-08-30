@@ -167,6 +167,13 @@ Tcpx has its built-in pool to help manage online and offline users. Note that :
 
 Official built-in pool will not extend much. If it doesn't fit your requirement, you should design your own pool.
 
+#### 2.9 Auth
+https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/auth
+
+Auth makes different sense comparing with middleware. A middleware can easily stop a invalid request after a connection has been established, but It can't avoid a client keep sending heartbeat but do nothing.It still occupy a connection resource.
+
+Auth will start a goroutine once a connection is on. In a specific interval not receiving signal, connection will be forcely dropped by server side.
+
 ## 3. Ussages
 Now tcpx advises two modes handling stream, using OnMessage requires user handling stream by himself
 
