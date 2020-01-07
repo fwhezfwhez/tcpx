@@ -26,5 +26,17 @@ func main() {
 		fmt.Println(e.Error())
 		return
 	}
+
+	buf, e = tcpx.PackWithMarshaller(tcpx.Message{
+		MessageID: 23,
+		Header:    nil,
+		Body:      payload,
+	}, marshaller.ByteMarshaller{})
+
+	_, e = conn.Write(buf)
+	if e != nil {
+		fmt.Println(e.Error())
+		return
+	}
 	select {}
 }
