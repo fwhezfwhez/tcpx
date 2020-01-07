@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/fwhezfwhez/tcpx"
+	"github.com/fwhezfwhez/tcpx/examples/modules/my-marshal/marshaller"
 	"net"
-	"tcpx"
-	"tcpx/examples/modules/my-marshal/marshaller"
 )
 
 func main() {

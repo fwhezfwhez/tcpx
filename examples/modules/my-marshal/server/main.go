@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
-	"tcpx"
-	"tcpx/examples/modules/my-marshal/marshaller"
+	"github.com/fwhezfwhez/tcpx"
+	"github.com/fwhezfwhez/tcpx/examples/modules/my-marshal/marshaller"
 )
 
 func main() {

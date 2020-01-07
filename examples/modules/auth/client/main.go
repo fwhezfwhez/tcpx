@@ -6,8 +6,7 @@ import (
 	"net"
 	"os"
 	"strings"
-	"tcpx"
-)
+	"github.com/fwhezfwhez/tcpx")
 
 //var appSecret = "hello"
 var appSecret = "hello2222"

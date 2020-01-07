@@ -3,12 +3,13 @@ package main
 import (
 	"crypto/md5"
 	"fmt"
+	"github.com/fwhezfwhez/tcpx"
 	"strings"
-	"tcpx"
 	"time"
 )
 
 var appSecret = "hello"
+
 func main() {
 	srv := tcpx.NewTcpX(nil)
 	tcpx.SetLogMode(tcpx.DEBUG)
@@ -26,7 +27,7 @@ func main() {
 		}
 		c.RecvAuthPass()
 	})
-    fmt.Println("tcp start on :8104")
+	fmt.Println("tcp start on :8104")
 	srv.ListenAndServe("tcp", ":8104")
 }
 
