@@ -38,7 +38,7 @@ type Auth struct {
 }
 
 func Encrypt(a Auth, secret string) string {
-	return tcpx.MD5(a.F1 + a.F2 + secret)
+	return MD5(a.F1 + a.F2 + secret)
 }
 func MD5(rawMsg string) string {
 	data := []byte(rawMsg)
