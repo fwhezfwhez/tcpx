@@ -28,3 +28,9 @@ func TestLog_Println(t *testing.T) {
     SetLogMode(DEBUG)
     Logger.Println("global logger hello")
 }
+
+func TestPrintDepth(t *testing.T) {
+	InitLog()
+
+	logger.Println("test-case logger hello")
+}

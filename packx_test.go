@@ -274,4 +274,5 @@ func TestPack(t *testing.T) {
 			"username":"tcpx",
 		},
 	}, JsonMarshaller{})
+	PackWithMarshallerAndBody()
 }
