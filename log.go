@@ -1,8 +1,11 @@
 package tcpx
 
 import (
+	"fmt"
+	"github.com/fwhezfwhez/errorx"
 	"log"
 	"os"
+	"strings"
 )
 
 const (
@@ -30,8 +33,11 @@ func (l *Log) SetLogFlags(flags int) {
 
 // Println info in debug mode, do nothing in release mode
 func (l Log) Println(info ...interface{}) {
+	rs:= fmt.Sprintf("%v", info)
+	rs = strings.TrimPrefix(rs, "[")
+	rs = strings.TrimSuffix(rs, "]")
 	if l.Mode == DEBUG {
-		l.Logger.Println(info ...)
+		fmt.Println(errorx.NewFromStringWithDepth(rs, 2).Error())
 	}
 }
 
@@ -45,6 +51,7 @@ var Logger = Log{
 func SetLogMode(mode int) {
 	Logger.Mode = mode
 }
+
 // Set global instance logger flags
 func SetLogFlags(flags int) {
 	Logger.Logger.SetFlags(flags)
