@@ -7,11 +7,23 @@ import (
 	"github.com/fwhezfwhez/tcpx/examples/modules/my-marshal/marshaller"
 )
 
+var packx = tcpx.NewPackx(marshaller.ByteMarshaller{})
+
 func main() {
 	srv := tcpx.NewTcpX(marshaller.ByteMarshaller{})
 	srv.AddHandler(22, func(c *tcpx.Context) {
 		var message []byte
 		mi, e := c.Bind(&message)
+		if e != nil {
+			fmt.Println(errorx.Wrap(e).Error())
+			return
+		}
+		fmt.Println(mi.MessageID, string(message))
+	})
+
+	srv.AddHandler(23, func(c *tcpx.Context) {
+		var message []byte
+		mi, e := packx.Unpack(c.Stream, &message)
 		if e != nil {
 			fmt.Println(errorx.Wrap(e).Error())
 			return
