@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
+	"io"
+	"net"
 	"strings"
 )
 
@@ -71,4 +73,39 @@ func MD5(rawMsg string) string {
 	has := md5.Sum(data)
 	md5str1 := fmt.Sprintf("%x", has)
 	return strings.ToUpper(md5str1)
+}
+
+// Write full buf
+// In case buf is too big and conn can't write once.
+//
+//
+/*
+   if len(buf)>65535 {
+       connLock.Lock()
+       WriteConn(buf, conn)
+       connLock.Unlock()
+    } else {
+       conn.Write(buf)
+   }
+*/
+//
+func WriteConn(buf []byte, conn net.Conn) error {
+	var sum = 0
+	for {
+		n, e := conn.Write(buf)
+
+		if e != nil {
+			if e == io.EOF {
+				return io.EOF
+				break
+			}
+			return errorx.Wrap(e)
+			break
+		}
+		sum += n
+		if sum >= len(buf) {
+			break
+		}
+	}
+	return nil
 }
