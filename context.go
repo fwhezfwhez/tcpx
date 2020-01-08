@@ -262,10 +262,10 @@ func (ctx *Context) InitReaderAndWriter() error {
 		ctx.ConnReader = ctx.UDPSession
 		ctx.ConnWriter = ctx.UDPSession
 
-	// udp not support writer and reader
-	//case "udp":
-	//	ctx.ConnReader = ctx.PacketConn
-	//	ctx.ConnWriter = ctx.PacketConn
+		// udp not support writer and reader
+		//case "udp":
+		//	ctx.ConnReader = ctx.PacketConn
+		//	ctx.ConnWriter = ctx.PacketConn
 	default:
 		return fmt.Errorf("only accept tcp/kcp but got %s", ctx.ConnectionProtocolType())
 	}
@@ -416,6 +416,9 @@ func (ctx *Context) Reply(messageID int32, src interface{}, headers ...map[strin
 	}
 	return ctx.replyBuf(buf)
 }
+func (ctx *Context) ReplyWithMarshaller(marshaller Marshaller, messageID int32, src interface{}, headers ...map[string]interface{}) error {
+	return ctx.commonReplyWithMarshaller(marshaller, messageID, src, headers...)
+}
 
 // Reply to client using json marshaller.
 // Whatever ctx.Packx.Marshaller.MarshalName is 'json' or not , message block will marshal its header and body by json marshaller.
@@ -471,6 +474,20 @@ func (ctx *Context) commonReply(marshalName string, messageID int32, src interfa
 		return errorx.Wrap(e)
 	}
 	return ctx.replyBuf(buf)
+}
+
+func (ctx *Context) commonReplyWithMarshaller(marshaller Marshaller, messageID int32, src interface{}, headers ...map[string]interface{}) error {
+	var buf []byte
+	var e error
+	buf, e = NewPackx(marshaller).Pack(messageID, src, headers...)
+	if e != nil {
+		return errorx.Wrap(e)
+	}
+	e = ctx.replyBuf(buf)
+	if e != nil {
+		return errorx.Wrap(e)
+	}
+	return nil
 }
 
 // Divide to udp and tcp replying accesses.
