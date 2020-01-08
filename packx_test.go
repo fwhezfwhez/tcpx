@@ -1,6 +1,7 @@
 package tcpx
 
 import (
+	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -271,8 +272,20 @@ func TestPack(t *testing.T) {
 			"auth": "abc",
 		},
 		Body: map[string]interface{}{
-			"username":"tcpx",
+			"username": "tcpx",
 		},
 	}, JsonMarshaller{})
-	PackWithMarshallerAndBody()
+}
+
+func TestReadUntilNumber(t *testing.T) {
+	var buf = make([]byte, 10, 10)
+
+	var data = []byte{1, 2}
+
+	reader := bytes.NewReader(data)
+
+	e := readUntil(reader, buf)
+	fmt.Println(e)
+
+	fmt.Println(buf)
 }
