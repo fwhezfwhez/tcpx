@@ -3,9 +3,10 @@ package main
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/fwhezfwhez/errorx"
 	"github.com/fwhezfwhez/tcpx/examples/sayHello/server/pb"
-	"time"
 
 	"github.com/fwhezfwhez/tcpx"
 	//"tcpx"

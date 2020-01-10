@@ -25,6 +25,7 @@ Supporting protocols
     - [Dependency](#dependency)
     - [Benchmark](#benchmark)
 - [2. Example](#2-example)
+    - [Helloworld](#helloworld)
     - [2.1 Heartbeat](#21-heartbeat)
     - [2.2 Online/Offline](#22-onlineoffline)
     - [2.3 Graceful](#23-graceful)
@@ -80,6 +81,66 @@ https://github.com/fwhezfwhez/tcpx/blob/master/benchmark_test.go
 
 ## 2. Example
 https://github.com/fwhezfwhez/tcpx/tree/master/examples/sayHello
+
+#### Helloworld
+server:
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/fwhezfwhez/tcpx"
+)
+
+func main() {
+	srv := tcpx.NewTcpX(nil)
+	srv.OnMessage = func(c *tcpx.Context) {
+		var message []byte
+		c.Bind(&message)
+		fmt.Println(string(message))
+	}
+	srv.ListenAndServe("tcp", "localhost:8080")
+}
+
+```
+
+client:
+```go
+package main
+
+import (
+	"fmt"
+	"net"
+
+	"github.com/fwhezfwhez/tcpx"
+	//"tcpx"
+)
+
+func main() {
+	conn, e := net.Dial("tcp", "localhost:8080")
+
+	if e != nil {
+		panic(e)
+	}
+	var message = []byte("hello world")
+	buf, e := tcpx.PackWithMarshaller(tcpx.Message{
+		MessageID: 1,
+		Header:    nil,
+		Body:      message,
+	}, nil)
+	if e != nil {
+		fmt.Println(e.Error())
+		return
+	}
+	_, e = conn.Write(buf)
+	if e != nil {
+		fmt.Println(e.Error())
+		return
+	}
+}
+
+```
 
 #### 2.1 Heartbeat
 https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/heartbeat
