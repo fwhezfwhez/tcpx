@@ -3,17 +3,17 @@ language: go
 go:
   - 1.9.x
   - 1.10.x
-#  - 1.11.x
-#  - 1.12.x
-#  - 1.13.x
-#  - 1.14.x
+  - 1.11.x
+  - 1.12.x
+  - 1.13.x
+  - 1.14.x
 
 env:
   - GOARCH=amd64
   - GOARCH=386
   - CODECOV_TOKEN="7bc84064-5397-473d-991a-c34c91547e8a"
   - GO111MODULE=off
-#  - GO111MODULE=on
+  - GO111MODULE=on
 
 sudo: true
 

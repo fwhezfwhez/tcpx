@@ -9,7 +9,7 @@
     <a href="https://codecov.io/gh/fwhezfwhez/tcpx"><img src="https://codecov.io/gh/fwhezfwhez/tcpx/branch/master/graph/badge.svg"></a>
 </p>
 
-A very convenient tcp framework in golang.Requiring go 1.10 +
+A very convenient tcp framework in golang.Requiring go 1.11 +
 
 Supporting protocols
 - UDP

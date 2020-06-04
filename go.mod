@@ -2,13 +2,6 @@ module github.com/fwhezfwhez/tcpx
 
 go 1.12
 
-replace (
-	github.com/klauspost/reedsolomon => github.com/klauspost/reedsolomon v1.9.9
-	github.com/templexxx/cpu => github.com/templexxx/cpu v0.0.1
-	github.com/templexxx/cpufeat => github.com/templexxx/cpu v0.0.1
-	github.com/templexxx/xor => github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b
-)
-
 require (
 	github.com/fwhezfwhez/errorx v0.0.0-20200421094746-a2781b3fd382
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
