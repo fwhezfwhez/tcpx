@@ -4,7 +4,9 @@ go 1.12
 
 replace (
 	github.com/klauspost/reedsolomon => github.com/klauspost/reedsolomon v1.9.9
+	github.com/templexxx/cpu => github.com/templexxx/cpu v0.0.1
 	github.com/templexxx/cpufeat => github.com/templexxx/cpu v0.0.1
+	github.com/templexxx/xor => github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b
 )
 
 require (
