@@ -5,7 +5,6 @@ go 1.12
 require (
 	github.com/fwhezfwhez/cmap v1.2.0
 	github.com/fwhezfwhez/errorx v0.0.0-20200421094746-a2781b3fd382
-	github.com/gin-gonic/gin v1.6.3
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/golang/protobuf v1.4.2
 	github.com/klauspost/reedsolomon v1.9.9 // indirect
@@ -18,7 +17,5 @@ require (
 	github.com/tjfoc/gmsm v1.3.1 // indirect
 	github.com/xtaci/kcp-go v5.4.20+incompatible
 	github.com/xtaci/lossyconn v0.0.0-20200209145036-adba10fffc37 // indirect
-	golang.org/x/crypto v0.0.0-20200602180216-279210d13fed // indirect
-	golang.org/x/net v0.0.0-20200602114024-627f9648deb9 // indirect
 	gopkg.in/yaml.v2 v2.3.0
 )

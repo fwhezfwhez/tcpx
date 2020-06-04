@@ -18,8 +18,6 @@ import (
 	"time"
 
 	"github.com/fwhezfwhez/errorx"
-	"github.com/gin-gonic/gin"
-	"github.com/rs/cors"
 	"github.com/xtaci/kcp-go"
 
 	"net"
@@ -758,18 +756,19 @@ func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ...interface{}
 //
 // Deprecated: on developing.
 func (tcpx *TcpX) ListenAndServeHTTP(network, addr string) error {
-	r := gin.New()
-	r.Any("/tcpx/message/:messageID/", func(ginCtx *gin.Context) {
-
-	})
-	s := &http.Server{
-		Addr:           addr,
-		Handler:        cors.AllowAll().Handler(r),
-		ReadTimeout:    60 * time.Second,
-		WriteTimeout:   60 * time.Second,
-		MaxHeaderBytes: 1 << 21,
-	}
-	return s.ListenAndServe()
+	//r := gin.New()
+	//	//r.Any("/tcpx/message/:messageID/", func(ginCtx *gin.Context) {
+	//	//
+	//	//})
+	//	//s := &http.Server{
+	//	//	Addr:           addr,
+	//	//	Handler:        cors.AllowAll().Handler(r),
+	//	//	ReadTimeout:    60 * time.Second,
+	//	//	WriteTimeout:   60 * time.Second,
+	//	//	MaxHeaderBytes: 1 << 21,
+	//	//}
+	//	//return s.ListenAndServe()
+	return nil
 }
 
 // grpc
