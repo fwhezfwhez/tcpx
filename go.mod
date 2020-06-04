@@ -3,7 +3,6 @@ module github.com/fwhezfwhez/tcpx
 go 1.12
 
 require (
-	github.com/fwhezfwhez/cmap v1.2.0
 	github.com/fwhezfwhez/errorx v0.0.0-20200421094746-a2781b3fd382
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/golang/protobuf v1.4.2

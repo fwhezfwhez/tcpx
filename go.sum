@@ -3,8 +3,6 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/fwhezfwhez/cmap v1.2.0 h1:pFLf8bCN/5XXyl3UO+kEpMjPjr1YiG5XZmfVTPM7F6I=
-github.com/fwhezfwhez/cmap v1.2.0/go.mod h1:tqnUpMbyjbqQzAxxWB2lWy8e44k4j33jXlepzFCOD0Q=
 github.com/fwhezfwhez/errorx v0.0.0-20200421094746-a2781b3fd382 h1:TrWXwMjIKOOy4CG5GV/7wcHf7/RDzF5JPqVjw+lonQM=
 github.com/fwhezfwhez/errorx v0.0.0-20200421094746-a2781b3fd382/go.mod h1:UUlJSPsX21+K7nZwMGMJKUbfxCdvDtMnSg1Ce5AWdrA=
 github.com/fwhezfwhez/go-queue v0.0.0-20181018085741-6c0e1734beaa/go.mod h1:qNtz1SFX/m63OyA2nuM+LjesDQiMVvcB7rYY86svpwM=
