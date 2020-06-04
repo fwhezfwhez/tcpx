@@ -4,10 +4,6 @@ package tcpx
 import (
 	"errors"
 	"fmt"
-	"github.com/fwhezfwhez/errorx"
-	"github.com/gin-gonic/gin"
-	"github.com/rs/cors"
-	"github.com/xtaci/kcp-go"
 	"io"
 	"log"
 	"net/http"
@@ -15,9 +11,16 @@ import (
 	"os/signal"
 	"reflect"
 	"runtime/debug"
+	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/fwhezfwhez/errorx"
+	"github.com/gin-gonic/gin"
+	"github.com/rs/cors"
+	"github.com/xtaci/kcp-go"
 
 	"net"
 )
@@ -28,6 +31,8 @@ const (
 
 	STATE_RUNNING = 1
 	STATE_STOP    = 2
+
+	PIPED = "[tcpx-buffer-in-serial]"
 )
 
 // OnMessage and mux are opposite.
@@ -291,7 +296,7 @@ func (tcpx *TcpX) UseGlobal(mids ...func(c *Context)) {
 	if tcpx.Mux == nil {
 		tcpx.Mux = NewMux()
 	}
-	tcpx.Mux.AddGlobalMiddleware(mids ...)
+	tcpx.Mux.AddGlobalMiddleware(mids...)
 }
 
 // Middleware typed 'SelfRelatedTypedMiddleware'.
@@ -503,7 +508,35 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 					break
 				}
 				tmpContext := copyContext(*ctx)
-				go handleMiddleware(tmpContext, tcpx)
+
+				isPipe, restN, e := isPipe(tmpContext.Stream)
+				if e != nil {
+					Logger.Println(e)
+					break
+				}
+				// fmt.Println("pipe args", isPipe, restN)
+
+				if isPipe {
+					// fmt.Println("recv pipe", isPipe, restN)
+					ctxs := make([]*Context, restN+1)
+					ctxs[0] = tmpContext
+					for i := 1; i < restN+1; i++ {
+						ctx.Stream, e = ctx.Packx.FirstBlockOf(ctx.Conn)
+						if e != nil {
+							if e == io.EOF {
+								break
+							}
+							Logger.Println(e)
+							break
+						}
+						tmpContext := copyContext(*ctx)
+						ctxs[i] = tmpContext
+					}
+
+					go handlePipe(ctxs, tcpx)
+				} else {
+					go handleMiddleware(tmpContext, tcpx)
+				}
 				continue
 			}
 		}(ctx, tcpx)
@@ -825,6 +858,13 @@ func handleMiddleware(ctx *Context, tcpx *TcpX) {
 	}
 }
 
+func handlePipe(ctxs []*Context, tcpx *TcpX) {
+	// fmt.Println("handle pipe ", len(ctxs))
+	for i, _ := range ctxs {
+		handleMiddleware(ctxs[i], tcpx)
+	}
+}
+
 func handleRaw(ctx *Context, tcpx *TcpX) {
 	if ctx.handlers == nil {
 		ctx.handlers = make([]func(c *Context), 0, 10)
@@ -1022,7 +1062,7 @@ func (tcpx *TcpX) Start() error {
 }
 
 // Graceful Restart = Stop and Start.Besides, you can
-func (tcpx *TcpX) Restart(closeAllConnection bool, beforeStart ... func()) error {
+func (tcpx *TcpX) Restart(closeAllConnection bool, beforeStart ...func()) error {
 	if e := tcpx.Stop(closeAllConnection); e != nil {
 		return e
 	}
@@ -1035,4 +1075,41 @@ func (tcpx *TcpX) Restart(closeAllConnection bool, beforeStart ... func()) error
 		return e
 	}
 	return nil
+}
+
+// return isPipe, rest serial block number, error
+func isPipe(block []byte) (bool, int, error) {
+	header, e := HeaderOf(block)
+	if e != nil {
+		return false, 0, errorx.Wrap(e)
+	}
+	// fmt.Println("header: ", header)
+
+	if len(header) == 0 {
+		return false, 0, nil
+	}
+
+	pipeArgsI, ok := header[PIPED]
+	if !ok {
+		return false, 0, nil
+	}
+
+	pipeArgs, ok := pipeArgsI.(string)
+	if !ok {
+		return false, 0, errorx.NewFromStringf("bad pipe args, should format as a  string, bug got type '%s'", reflect.TypeOf(pipeArgsI).Name())
+	}
+
+	arr := strings.Split(pipeArgs, ";")
+	if len(arr) != 2 {
+		return false, 0, errorx.NewFromStringf("bad pipe args, should format as 'enable:<length>' but got %s", pipeArgs)
+	}
+
+	length, err := strconv.Atoi(arr[1])
+	if err != nil {
+		return false, 0, errorx.NewFromStringf("bad pipe args length, should format as 'enable:<length>' but got %s,\n %v", arr[1], err)
+	}
+	if arr[0] == "enable" {
+		return true, length - 1, nil
+	}
+	return false, 0, nil
 }

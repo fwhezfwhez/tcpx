@@ -4,10 +4,12 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"github.com/fwhezfwhez/errorx"
 	"io"
 	"net"
+	"reflect"
 	"strings"
+
+	"github.com/fwhezfwhez/errorx"
 )
 
 type H map[string]interface{}
@@ -97,15 +99,119 @@ func WriteConn(buf []byte, conn net.Conn) error {
 		if e != nil {
 			if e == io.EOF {
 				return io.EOF
-				break
 			}
 			return errorx.Wrap(e)
-			break
 		}
 		sum += n
 		if sum >= len(buf) {
 			break
 		}
+	}
+	return nil
+}
+
+// TCPConnect will establish a tcp connection and return it
+func TCPConnect(network string, url string) (net.Conn, error) {
+	return net.Dial(network, url)
+}
+
+// WriteJSON will write conn a message wrapped by tcpx.JSONMarshaller
+func WriteJSON(conn net.Conn, messageID int32, message interface{}) error {
+	msg := Message{
+		MessageID: messageID,
+		Header:    nil,
+		Body:      message,
+	}
+
+	buf, e := PackWithMarshaller(msg, JsonMarshaller{})
+	if e != nil {
+		return errorx.Wrap(e)
+	}
+
+	if _, e = conn.Write(buf); e != nil {
+		return errorx.Wrap(e)
+	}
+	return nil
+}
+
+func BindJSON(bodyBuf []byte, dest interface{}) error {
+	return json.Unmarshal(bodyBuf, dest)
+}
+
+func PipeJSON(conn net.Conn, args ...interface{}) error {
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	if len(args)%2 != 0 {
+		return errorx.NewFromString("iligal args, PipeJSON'args requires messageID int32, data interface{} in pair")
+	}
+
+	num := len(args) / 2
+
+	var allBuf = make([]byte, 0, 100)
+
+	for i := 0; i < len(args)-1; i += 2 {
+		messageID, ok := args[i].(int)
+		if !ok {
+			return errorx.NewFromStringf("wrong type, args[%d] should be a int type messageID but got %s", i, reflect.TypeOf(args[i]).Name())
+		}
+		message := args[i+1]
+
+		var msg Message
+		if i == 0 {
+			msg = Message{
+				MessageID: int32(messageID),
+				Header: map[string]interface{}{
+					PIPED: fmt.Sprintf("enable;%d", num),
+				},
+				Body: message,
+			}
+		} else {
+			msg = Message{
+				MessageID: int32(messageID),
+				Header:    nil,
+				Body:      message,
+			}
+		}
+
+		buf, e := PackWithMarshaller(msg, JsonMarshaller{})
+		if e != nil {
+			return errorx.Wrap(e)
+		}
+
+		allBuf = append(allBuf, buf...)
+	}
+
+	if len(allBuf) != 0 {
+		if _, e := conn.Write(allBuf); e != nil {
+			return errorx.Wrap(e)
+		}
+	}
+
+	return nil
+}
+
+func TCPCallOnceJSON(network string, url string, messageID int, data interface{}) error {
+	conn, e := TCPConnect(network, url)
+	if e != nil {
+		return errorx.Wrap(e)
+	}
+	defer conn.Close()
+
+	msg := Message{
+		MessageID: int32(messageID),
+		Header:    nil,
+		Body:      data,
+	}
+	buf, e := PackWithMarshaller(msg, JsonMarshaller{})
+	if e != nil {
+		return errorx.Wrap(e)
+	}
+
+	if _, e = conn.Write(buf); e != nil {
+		return errorx.Wrap(e)
 	}
 	return nil
 }

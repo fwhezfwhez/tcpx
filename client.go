@@ -6,11 +6,14 @@ import (
 	"net"
 	"sync"
 	"time"
+
+	"github.com/fwhezfwhez/cmap"
+	"github.com/fwhezfwhez/errorx"
 )
 
 // Call args
 type Option struct {
-	Cache map[string]net.Conn
+	Cache *cmap.Map
 	l     *sync.RWMutex
 
 	Network string
@@ -25,7 +28,7 @@ type Option struct {
 
 func NewOption() *Option {
 	return &Option{
-		Cache: make(map[string]net.Conn, 0),
+		Cache: cmap.NewMap(),
 		l:     &sync.RWMutex{},
 	}
 }
@@ -74,40 +77,45 @@ func (o *Option) Copy() *Option {
 	}
 }
 
-// Call require client send a request and server response once to once
-func Call(request []byte, option *Option) ([]byte, error) {
-	var result = make(chan []byte, 1)
-	var connHash = fmt.Sprintf("%s://%s", option.Network, option.Host)
-	var e error
+func (o *Option) setConn(conn net.Conn, connHash string) {
+	o.l.Lock()
+	defer o.l.Unlock()
+
+	o.Cache.Set(connHash, conn)
+}
+
+func (o *Option) getConn(network string, host string) (net.Conn, error) {
 	var conn net.Conn
+	var e error
 
-	// get conn from pool
-	if len(option.Cache) != 0 {
-		var ok bool
-		option.l.RLock()
-		conn, ok = option.Cache[connHash]
-		option.l.RUnlock()
-		if !ok {
-			conn, e = net.Dial(option.Network, option.Host)
-			if e != nil {
-				return nil, e
-			}
-			option.l.Lock()
-			option.Cache[connHash] = conn
-			option.l.Unlock()
-		}
-	} else {
-		conn, e = net.Dial(option.Network, option.Host)
+	connHash := connHash(network, host)
+
+	o.l.RLock()
+	connI, ok := o.Cache.Get(connHash)
+	o.l.RUnlock()
+
+	if !ok {
+		conn, e = net.Dial(network, host)
 		if e != nil {
-			return nil, e
+			return nil, errorx.Wrap(e)
 		}
-		option.l.Lock()
-		option.Cache[connHash] = conn
-		option.l.Unlock()
-
+		o.setConn(conn, connHash)
+		return conn, nil
+	} else {
+		conn = connI.(net.Conn)
 	}
+
+	return conn, nil
+}
+
+// Call require client send a request and server response once to once
+func call(request []byte, host string, network string, option *Option) ([]byte, error) {
+	var result = make(chan []byte, 1)
+	var connHash = connHash(network, host)
+
+	conn, e := option.getConn(network, host)
 	if e != nil {
-		return nil, e
+		return nil, errorx.Wrap(e)
 	}
 
 	if option.KeepAlive == true {
@@ -117,7 +125,7 @@ func Call(request []byte, option *Option) ([]byte, error) {
 				case <-time.After(option.AliveTime):
 					conn.Close()
 					option.l.Lock()
-					delete(option.Cache, connHash)
+					option.Cache.Delete(connHash)
 					option.l.Unlock()
 				}
 			}
@@ -146,4 +154,12 @@ func Call(request []byte, option *Option) ([]byte, error) {
 			return v, nil
 		}
 	}
+}
+
+func connHash(network string, host string) string {
+	return fmt.Sprintf("%s://%s", network, host)
+}
+
+func connExpHash(connHash string) string {
+	return fmt.Sprintf("%s/%s", connHash, "exp")
 }

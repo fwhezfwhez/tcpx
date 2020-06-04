@@ -33,8 +33,8 @@ func (cp *ClientPool) GetClientPool(username string) *Context {
 }
 
 func (cp *ClientPool) DeleteFromClientPool(username string) {
-	cp.m.RLock()
-	defer cp.m.RUnlock()
+	cp.m.Lock()
+	defer cp.m.Unlock()
 	delete(cp.Clients, username)
 }
 
