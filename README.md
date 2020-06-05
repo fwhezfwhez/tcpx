@@ -9,12 +9,15 @@
     <a href="https://codecov.io/gh/fwhezfwhez/tcpx"><img src="https://codecov.io/gh/fwhezfwhez/tcpx/branch/master/graph/badge.svg"></a>
 </p>
 
-A very convenient tcp framework in golang.Requiring go 1.11 +
+A very convenient tcp framework in golang.
 
 Supporting protocols
 - UDP
 - TCP
-- KCP
+- KCP(tcpx@v3.0.0 --)
+
+## Declaration
+Since some dependencies, (`github.com/xtaci/kcp-go` --> `github.com/klauspost/reedsolomon`, `github.com/xtaci/kcp-go` --> `github.com/templexxx/*`), ,stop supporting old go versions, which conflicts to my opinion, tcpx decides stop supporting kcp.And tcp.v3.0.0 is the last version to use it running kcp server.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
