@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
 	"github.com/fwhezfwhez/tcpx/examples/sayHello/client/pb"
-	"github.com/xtaci/kcp-go"
+
 	"net"
 	"testing"
 	"time"
@@ -13,8 +13,8 @@ import (
 func TestNewContext(t *testing.T) {
 	tcpCtx := NewContext(&net.TCPConn{}, nil)
 	udpCtx := NewUDPContext(&net.UDPConn{}, &net.UDPAddr{}, nil)
-	kcpCtx := NewKCPContext(&kcp.UDPSession{}, nil)
-	fmt.Println(tcpCtx, udpCtx, kcpCtx)
+	// kcpCtx := NewKCPContext(&kcp.UDPSession{}, nil)
+	// fmt.Println(tcpCtx, udpCtx, kcpCtx)
 
 	if tcpCtx.ConnectionProtocolType() != "tcp" {
 		fmt.Println(fmt.Sprintf("tcpCtx want tcp but got %s", tcpCtx.ConnectionProtocolType()))
@@ -26,11 +26,11 @@ func TestNewContext(t *testing.T) {
 		t.Fail()
 		return
 	}
-	if kcpCtx.ConnectionProtocolType() != "kcp" {
-		fmt.Println(fmt.Sprintf("kcpCtx want kcp but got %s", kcpCtx.ConnectionProtocolType()))
-		t.Fail()
-		return
-	}
+	//if kcpCtx.ConnectionProtocolType() != "kcp" {
+	//	fmt.Println(fmt.Sprintf("kcpCtx want kcp but got %s", kcpCtx.ConnectionProtocolType()))
+	//	t.Fail()
+	//	return
+	//}
 }
 
 func TestContext_Bind_JSON(t *testing.T) {
@@ -339,12 +339,12 @@ func TestContext_Network(t *testing.T) {
 		t.Fail()
 		return
 	}
-	ctx = NewKCPContext(&kcp.UDPSession{}, nil)
-	if ctx.Network() != "kcp" {
-		fmt.Println(fmt.Sprintf("ctx want kcp but got %s", ctx.Network()))
-		t.Fail()
-		return
-	}
+	//ctx = NewKCPContext(&kcp.UDPSession{}, nil)
+	//if ctx.Network() != "kcp" {
+	//	fmt.Println(fmt.Sprintf("ctx want kcp but got %s", ctx.Network()))
+	//	t.Fail()
+	//	return
+	//}
 }
 
 func TestContext_Abort_Next_Reset_RestOffset_IsAbort(t *testing.T) {

@@ -17,8 +17,6 @@ import (
 	"time"
 
 	"github.com/fwhezfwhez/errorx"
-	"github.com/xtaci/kcp-go"
-
 	"net"
 )
 
@@ -328,7 +326,8 @@ func (tcpx *TcpX) ListenAndServe(network, addr string) error {
 		return tcpx.ListenAndServeUDP(network, addr)
 	}
 	if In(network, []string{"kcp"}) {
-		return tcpx.ListenAndServeKCP(network, addr)
+		return fmt.Errorf("tcpx only supports kcp in v3.0.0-")
+		// return tcpx.ListenAdServeKCP(network, addr)
 	}
 	//if In(network, []string{"http", "https"}) {
 	//	return tcpx.ListenAndServeHTTP(network, addr)
@@ -666,89 +665,89 @@ func ReadAllUDP(conn net.PacketConn, maxBufferSize ...int) ([]byte, net.Addr, er
 
 // kcp
 // all configs are using default value.
-func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ...interface{}) error {
-	listener, err := kcp.ListenWithOptions(addr, nil, 10, 3)
-	//defer Defer(func() {
-	//	listener.Close()
-	//})
-	if err != nil {
-		return err
-	}
-	defer listener.Close()
-
-	tcpx.fillProperty(network, addr, listener)
-
-	tcpx.openState()
-	for {
-		if tcpx.State() == STATE_STOP {
-			break
-		}
-		conn, e := listener.AcceptKCP()
-		if e != nil {
-			Logger.Println(err.Error())
-			continue
-		}
-
-		// SetDeadline
-		conn.SetDeadline(tcpx.deadLine)
-		conn.SetReadDeadline(tcpx.readDeadLine)
-		conn.SetWriteDeadline(tcpx.writeDeadLine)
-
-		ctx := NewKCPContext(conn, tcpx.Packx.Marshaller)
-
-		if tcpx.builtInPool {
-			ctx.poolRef = tcpx.pool
-		}
-
-		if tcpx.OnConnect != nil {
-			tcpx.OnConnect(ctx)
-		}
-		// signal management
-		go broadcastSignalWatch(ctx, tcpx)
-
-		go heartBeatWatch(ctx, tcpx)
-
-		go func(ctx *Context, tcpx *TcpX) {
-			defer func() {
-				if e := recover(); e != nil {
-					Logger.Println(fmt.Sprintf("recover from panic %v", e))
-				}
-			}()
-			defer ctx.UDPSession.Close()
-			if tcpx.OnClose != nil {
-				defer tcpx.OnClose(ctx)
-			}
-			var e error
-			//var n int
-			//var buffer = make([]byte, 1024, 1024)
-			for {
-				//n, e = conn.Read(buffer)
-				//if e != nil {
-				//	if e == io.EOF {
-				//		break
-				//	}
-				//	fmt.Println(errorx.Wrap(e))
-				//	break
-				//}
-				// client should send per block, rather than blocks bond together.
-				// if blocks are bond, only first block are useful.
-				ctx.Stream, e = tcpx.Packx.FirstBlockOf(conn)
-				if e != nil {
-					Logger.Println(e.Error())
-					// if byte stream invalid, conn will close
-					break
-				}
-
-				// Can't used prefixed by `go`
-				// because requests on a same connection share context
-
-				tmpContext := copyContext(*ctx)
-				go handleMiddleware(tmpContext, tcpx)
-			}
-		}(ctx, tcpx)
-	}
-	return nil
-}
+//func (tcpx *TcpX) ListenAndServeKCP(network, addr string, configs ...interface{}) error {
+//	listener, err := kcp.ListenWithOptions(addr, nil, 10, 3)
+//	//defer Defer(func() {
+//	//	listener.Close()
+//	//})
+//	if err != nil {
+//		return err
+//	}
+//	defer listener.Close()
+//
+//	tcpx.fillProperty(network, addr, listener)
+//
+//	tcpx.openState()
+//	for {
+//		if tcpx.State() == STATE_STOP {
+//			break
+//		}
+//		conn, e := listener.AcceptKCP()
+//		if e != nil {
+//			Logger.Println(err.Error())
+//			continue
+//		}
+//
+//		// SetDeadline
+//		conn.SetDeadline(tcpx.deadLine)
+//		conn.SetReadDeadline(tcpx.readDeadLine)
+//		conn.SetWriteDeadline(tcpx.writeDeadLine)
+//
+//		ctx := NewKCPContext(conn, tcpx.Packx.Marshaller)
+//
+//		if tcpx.builtInPool {
+//			ctx.poolRef = tcpx.pool
+//		}
+//
+//		if tcpx.OnConnect != nil {
+//			tcpx.OnConnect(ctx)
+//		}
+//		// signal management
+//		go broadcastSignalWatch(ctx, tcpx)
+//
+//		go heartBeatWatch(ctx, tcpx)
+//
+//		go func(ctx *Context, tcpx *TcpX) {
+//			defer func() {
+//				if e := recover(); e != nil {
+//					Logger.Println(fmt.Sprintf("recover from panic %v", e))
+//				}
+//			}()
+//			defer ctx.UDPSession.Close()
+//			if tcpx.OnClose != nil {
+//				defer tcpx.OnClose(ctx)
+//			}
+//			var e error
+//			//var n int
+//			//var buffer = make([]byte, 1024, 1024)
+//			for {
+//				//n, e = conn.Read(buffer)
+//				//if e != nil {
+//				//	if e == io.EOF {
+//				//		break
+//				//	}
+//				//	fmt.Println(errorx.Wrap(e))
+//				//	break
+//				//}
+//				// client should send per block, rather than blocks bond together.
+//				// if blocks are bond, only first block are useful.
+//				ctx.Stream, e = tcpx.Packx.FirstBlockOf(conn)
+//				if e != nil {
+//					Logger.Println(e.Error())
+//					// if byte stream invalid, conn will close
+//					break
+//				}
+//
+//				// Can't used prefixed by `go`
+//				// because requests on a same connection share context
+//
+//				tmpContext := copyContext(*ctx)
+//				go handleMiddleware(tmpContext, tcpx)
+//			}
+//		}(ctx, tcpx)
+//	}
+//	return nil
+//}
 
 // http
 // developing, do not use.

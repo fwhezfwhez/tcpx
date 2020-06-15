@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
-	"github.com/xtaci/kcp-go"
+	// "github.com/xtaci/kcp-go"
 	"net"
 	"runtime"
 	"testing"
@@ -200,86 +200,86 @@ func TestTcpX_UDP_Middleware_UnUse(t *testing.T) {
 }
 
 // Usage of Abort and Next, get middlewareOrder [1,2,3] 4 is aborted
-func TestTcpX_KCP_Middleware_Abort_Next(t *testing.T) {
-	var serverStart = make(chan int, 1)
-	var testResult = make(chan error, 1)
-	// middlewareOrder suggest the execute order of three kinds middleware [1,2,3]
-	var middlewareOrder = make([]int, 0, 10)
-	// client
-	go func() {
-		<-serverStart
-
-		conn, err := kcp.DialWithOptions("localhost:7006", nil, 10, 3)
-		if err != nil {
-			testResult <- errorx.Wrap(err)
-			fmt.Println(errorx.Wrap(err).Error())
-			return
-		}
-
-		buf, e := PackJSON.Pack(1, "hello, I'm client")
-
-		if e != nil {
-			testResult <- errorx.Wrap(e)
-			fmt.Println(errorx.Wrap(e).Error())
-			return
-		}
-		conn.Write(buf)
-	}()
-
-	// server
-	go func() {
-		srv := NewTcpX(JsonMarshaller{})
-		srv.OnMessage = nil
-
-		// global middleware
-		srv.UseGlobal(func(c *Context) {
-			middlewareOrder = append(middlewareOrder, 1)
-			fmt.Println("pass global")
-		})
-		// anchor middleware
-		srv.Use("anchor1", func(c *Context) {
-			middlewareOrder = append(middlewareOrder, 2)
-			fmt.Println("pass anchor1")
-			c.Next()
-		}, "anchor2", func(c *Context) {
-			middlewareOrder = append(middlewareOrder, 3)
-			fmt.Println("pass anchor2")
-			c.Abort()
-			time.Sleep(2 * time.Second)
-			fmt.Println(middlewareOrder)
-			if len(middlewareOrder) != 3 {
-				testResult <- errorx.NewFromStringf("middlewareOrder len want 3 but got %d", len(middlewareOrder))
-				return
-			}
-			testResult <- nil
-		}, "anchor3", func(c *Context) {
-			fmt.Println("should not pass anchor 3, but passed")
-			middlewareOrder = append(middlewareOrder, 4)
-		})
-
-		// router middleware
-		// no chance to exec since anchor abort the chain
-		srv.AddHandler(1, func(c *Context) {
-		})
-
-		go func() {
-			time.Sleep(time.Second * 10)
-			serverStart <- 1
-		}()
-		e := srv.ListenAndServe("kcp", ":7006")
-		if e != nil {
-			testResult <- errorx.Wrap(e)
-			fmt.Println(e.Error())
-			return
-		}
-	}()
-
-	e := <-testResult
-	if e != nil {
-		fmt.Println(e.Error())
-		t.Fail()
-	}
-}
+//func TestTcpX_KCP_Middleware_Abort_Next(t *testing.T) {
+//	var serverStart = make(chan int, 1)
+//	var testResult = make(chan error, 1)
+//	// middlewareOrder suggest the execute order of three kinds middleware [1,2,3]
+//	var middlewareOrder = make([]int, 0, 10)
+//	// client
+//	go func() {
+//		<-serverStart
+//
+//		conn, err := kcp.DialWithOptions("localhost:7006", nil, 10, 3)
+//		if err != nil {
+//			testResult <- errorx.Wrap(err)
+//			fmt.Println(errorx.Wrap(err).Error())
+//			return
+//		}
+//
+//		buf, e := PackJSON.Pack(1, "hello, I'm client")
+//
+//		if e != nil {
+//			testResult <- errorx.Wrap(e)
+//			fmt.Println(errorx.Wrap(e).Error())
+//			return
+//		}
+//		conn.Write(buf)
+//	}()
+//
+//	// server
+//	go func() {
+//		srv := NewTcpX(JsonMarshaller{})
+//		srv.OnMessage = nil
+//
+//		// global middleware
+//		srv.UseGlobal(func(c *Context) {
+//			middlewareOrder = append(middlewareOrder, 1)
+//			fmt.Println("pass global")
+//		})
+//		// anchor middleware
+//		srv.Use("anchor1", func(c *Context) {
+//			middlewareOrder = append(middlewareOrder, 2)
+//			fmt.Println("pass anchor1")
+//			c.Next()
+//		}, "anchor2", func(c *Context) {
+//			middlewareOrder = append(middlewareOrder, 3)
+//			fmt.Println("pass anchor2")
+//			c.Abort()
+//			time.Sleep(2 * time.Second)
+//			fmt.Println(middlewareOrder)
+//			if len(middlewareOrder) != 3 {
+//				testResult <- errorx.NewFromStringf("middlewareOrder len want 3 but got %d", len(middlewareOrder))
+//				return
+//			}
+//			testResult <- nil
+//		}, "anchor3", func(c *Context) {
+//			fmt.Println("should not pass anchor 3, but passed")
+//			middlewareOrder = append(middlewareOrder, 4)
+//		})
+//
+//		// router middleware
+//		// no chance to exec since anchor abort the chain
+//		srv.AddHandler(1, func(c *Context) {
+//		})
+//
+//		go func() {
+//			time.Sleep(time.Second * 10)
+//			serverStart <- 1
+//		}()
+//		e := srv.ListenAndServe("kcp", ":7006")
+//		if e != nil {
+//			testResult <- errorx.Wrap(e)
+//			fmt.Println(e.Error())
+//			return
+//		}
+//	}()
+//
+//	e := <-testResult
+//	if e != nil {
+//		fmt.Println(e.Error())
+//		t.Fail()
+//	}
+//}
 
 func TestTcpX_OnMessage(t *testing.T) {
 	var serverStart = make(chan int, 1)

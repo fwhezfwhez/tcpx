@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
-	"github.com/xtaci/kcp-go"
+
 	"io"
 	"net"
 	"strings"
@@ -33,7 +33,7 @@ type Context struct {
 	Addr       net.Addr
 
 	// for kcp conn
-	UDPSession *kcp.UDPSession
+	//UDPSession *kcp.UDPSession
 
 	// for k-v pair shared in connection/request scope
 	PerConnectionContext *sync.Map
@@ -87,7 +87,7 @@ func copyContext(ctx Context) *Context {
 		L:                    ctx.L,
 		PacketConn:           ctx.PacketConn,
 		Addr:                 ctx.Addr,
-		UDPSession:           ctx.UDPSession,
+		//UDPSession:           ctx.UDPSession,
 		PerConnectionContext: ctx.PerConnectionContext,
 		PerRequestContext:    ctx.PerConnectionContext,
 		Packx:                ctx.Packx,
@@ -221,23 +221,23 @@ func NewUDPContext(conn net.PacketConn, addr net.Addr, marshaller Marshaller) *C
 
 // New a context.
 // This is used for new a context for kcp server.
-func NewKCPContext(udpSession *kcp.UDPSession, marshaller Marshaller) *Context {
-	var online = CONTEXT_ONLINE
-	return &Context{
-		UDPSession:           udpSession,
-		PerConnectionContext: nil,
-		PerRequestContext:    &sync.Map{},
-
-		Packx:  NewPackx(marshaller),
-		offset: -1,
-
-		recvEnd:  make(chan int, 1),
-		recvAuth: make(chan int, 1),
-
-		L:         &sync.RWMutex{},
-		userState: &online,
-	}
-}
+//func NewKCPContext(udpSession *kcp.UDPSession, marshaller Marshaller) *Context {
+//	var online = CONTEXT_ONLINE
+//	return &Context{
+//		UDPSession:           udpSession,
+//		PerConnectionContext: nil,
+//		PerRequestContext:    &sync.Map{},
+//
+//		Packx:  NewPackx(marshaller),
+//		offset: -1,
+//
+//		recvEnd:  make(chan int, 1),
+//		recvAuth: make(chan int, 1),
+//
+//		L:         &sync.RWMutex{},
+//		userState: &online,
+//	}
+//}
 
 // ConnectionProtocol returns server protocol, tcp, udp, kcp
 func (ctx *Context) ConnectionProtocolType() string {
@@ -247,9 +247,9 @@ func (ctx *Context) ConnectionProtocolType() string {
 	if ctx.Addr != nil && ctx.PacketConn != nil {
 		return "udp"
 	}
-	if ctx.UDPSession != nil {
-		return "kcp"
-	}
+	//if ctx.UDPSession != nil {
+	//	return "kcp"
+	//}
 	return "tcp"
 }
 
@@ -258,9 +258,9 @@ func (ctx *Context) InitReaderAndWriter() error {
 	case "tcp":
 		ctx.ConnReader = ctx.Conn
 		ctx.ConnWriter = ctx.Conn
-	case "kcp":
-		ctx.ConnReader = ctx.UDPSession
-		ctx.ConnWriter = ctx.UDPSession
+	//case "kcp":
+	//	ctx.ConnReader = ctx.UDPSession
+	//	ctx.ConnWriter = ctx.UDPSession
 
 		// udp not support writer and reader
 		//case "udp":
@@ -296,8 +296,8 @@ func (ctx *Context) CloseConn() error {
 	case "udp":
 
 		return ctx.PacketConn.Close()
-	case "kcp":
-		return ctx.UDPSession.Close()
+	//case "kcp":
+	//	return ctx.UDPSession.Close()
 	}
 	return nil
 }
@@ -310,8 +310,8 @@ func (ctx *Context) SetDeadline(t time.Time) error {
 	case "udp":
 
 		return ctx.PacketConn.SetDeadline(t)
-	case "kcp":
-		return ctx.UDPSession.SetDeadline(t)
+	//case "kcp":
+	//	return ctx.UDPSession.SetDeadline(t)
 	}
 	return nil
 }
@@ -324,8 +324,8 @@ func (ctx *Context) SetReadDeadline(t time.Time) error {
 	case "udp":
 
 		return ctx.PacketConn.SetReadDeadline(t)
-	case "kcp":
-		return ctx.UDPSession.SetReadDeadline(t)
+	//case "kcp":
+	//	return ctx.UDPSession.SetReadDeadline(t)
 	}
 	return nil
 }
@@ -338,8 +338,8 @@ func (ctx *Context) SetWriteDeadline(t time.Time) error {
 	case "udp":
 
 		return ctx.PacketConn.SetWriteDeadline(t)
-	case "kcp":
-		return ctx.UDPSession.SetWriteDeadline(t)
+	//case "kcp":
+	//	return ctx.UDPSession.SetWriteDeadline(t)
 	}
 	return nil
 }
@@ -501,10 +501,10 @@ func (ctx *Context) replyBuf(buf []byte) (e error) {
 		if _, e = ctx.PacketConn.WriteTo(buf, ctx.Addr); e != nil {
 			return errorx.Wrap(e)
 		}
-	case "kcp":
-		if _, e = ctx.UDPSession.Write(buf); e != nil {
-			return errorx.Wrap(e)
-		}
+	//case "kcp":
+	//	if _, e = ctx.UDPSession.Write(buf); e != nil {
+	//		return errorx.Wrap(e)
+	//	}
 	}
 	return nil
 }
@@ -521,8 +521,8 @@ func (ctx Context) ClientIP() string {
 		clientAddr = ctx.Conn.RemoteAddr().String()
 	case "udp":
 		clientAddr = ctx.Addr.String()
-	case "kcp":
-		clientAddr = ctx.UDPSession.RemoteAddr().String()
+	//case "kcp":
+	//	clientAddr = ctx.UDPSession.RemoteAddr().String()
 	}
 	arr := strings.Split(clientAddr, ":")
 	// ipv4

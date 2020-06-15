@@ -16,6 +16,7 @@ func main() {
 	}
 
 	var e error
+	//总长度
 	var lengthBuf = make([]byte, 4)
 	var messageIDBuf = make([]byte, 4)
 	binary.BigEndian.PutUint32(messageIDBuf, uint32(messageID))
@@ -23,18 +24,22 @@ func main() {
 	var bodyLengthBuf = make([]byte, 4)
 	var headerBuf []byte
 	var bodyBuf []byte
+	// header 序列
 	headerBuf, e = json.Marshal(header)
 	if e != nil {
 		panic(e)
 	}
+	// header长度的序列
 	binary.BigEndian.PutUint32(headerLengthBuf, uint32(len(headerBuf)))
 	if payload!=nil{
+		// body 序列
 		bodyBuf, e = json.Marshal(payload)
 		if e != nil {
 			panic(e)
 		}
 	}
 
+	// body长度
 	binary.BigEndian.PutUint32(bodyLengthBuf, uint32(len(bodyBuf)))
 	var content = make([]byte, 0, 1024)
 
