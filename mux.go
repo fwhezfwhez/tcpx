@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
+	"runtime"
 	"sync"
+	"sync/atomic"
 )
 
 const (
@@ -34,6 +36,11 @@ type Mux struct {
 	MiddlewareAnchorMap map[string]MiddlewareAnchor
 
 	MessageIDAnchorMap map[int32]MessageIDAnchor
+
+	// urlMux
+	urlPatternMux       map[string][]func(ctx *Context)
+	panicOnExistRouting bool
+	urlRouteInfo        map[string]Route
 }
 
 // New a mux instance, malloc memory for its mutex, handler slice...
@@ -49,6 +56,41 @@ func NewMux() *Mux {
 		MiddlewareAnchors:   make([]MiddlewareAnchor, 0, 10),
 		MiddlewareAnchorMap: make(map[string]MiddlewareAnchor, 0),
 		MessageIDAnchorMap:  make(map[int32]MessageIDAnchor, 0),
+
+
+		urlPatternMux: make(map[string][]func(ctx *Context), 0),
+	}
+}
+
+// Any is used to routing message using url-pattern
+func (mux *Mux) Any(urlPattern string, handlers ... func(c *Context)) error {
+	if mux.isReadOnly() == false {
+		_, file, line, _ := runtime.Caller(1)
+		routeInfo := Route{
+			Whereis:    []string{fmt.Sprintf("%s:%d", file, line)},
+			URLPattern: urlPattern,
+		}
+
+		h, ok := mux.urlPatternMux[urlPattern]
+		if ok {
+			if mux.panicOnExistRouting {
+				panic(fmt.Errorf("handler conflicts on the same url-pattern: \n%s\nThe existed route-info is at:\n%s", routeInfo.Whereis[0], mux.urlRouteInfo[urlPattern].Location()))
+			}
+
+			mux.urlPatternMux[urlPattern] = append(h, handlers...)
+		} else {
+			mux.urlPatternMux[urlPattern] = handlers
+		}
+
+		r, exist := mux.urlRouteInfo[urlPattern]
+		if !exist {
+			mux.urlRouteInfo[urlPattern] = routeInfo
+		} else {
+			mux.urlRouteInfo[urlPattern] = r.Merge(routeInfo)
+		}
+		return nil
+	} else {
+		return errorx.NewFromString("mux is only writable before mux.LockWrite()")
 	}
 }
 
@@ -66,11 +108,10 @@ func (mux *Mux) AddHandleFunc(messageID int32, handler func(ctx *Context)) {
 	mux.Handlers[messageID] = handler
 }
 
+var indexSeed int32 = 1
 // anchorIndex of current handlers
 func (mux *Mux) CurrentAnchorIndex() int {
-	mux.Mutex.RLock()
-	defer mux.Mutex.RUnlock()
-	return len(mux.Handlers) - 1
+	return int(atomic.AddInt32(&indexSeed, 1))
 }
 
 // get anchor index of a messageID
@@ -111,7 +152,8 @@ func (mux *Mux) AddMiddlewareAnchor(anchor MiddlewareAnchor) {
 	}
 	_, ok := mux.MiddlewareAnchorMap[anchor.MiddlewareKey]
 	if ok {
-		panic(errorx.NewFromStringf("mux.MiddlewareAnchorMap['%s'] already exists", anchor.MiddlewareKey))
+
+		return
 	}
 	mux.MiddlewareAnchorMap[anchor.MiddlewareKey] = anchor
 	mux.MiddlewareAnchors = append(mux.MiddlewareAnchors, anchor)
@@ -133,10 +175,13 @@ func (mux *Mux) ReplaceMiddlewareAnchor(anchor MiddlewareAnchor) {
 	}
 	// replace map
 	mux.MiddlewareAnchorMap[anchor.MiddlewareKey] = anchor
-	// change expired anchor index in slice
-	for i,v :=range mux.MiddlewareAnchors {
+
+	// replace slice
+L:
+	for i, v := range mux.MiddlewareAnchors {
 		if v.MiddlewareKey == anchor.MiddlewareKey {
-			mux.MiddlewareAnchors[i].ExpireAnchorIndex = anchor.ExpireAnchorIndex
+			mux.MiddlewareAnchors[i] = anchor
+			break L
 		}
 	}
 }
@@ -177,6 +222,10 @@ func (mux *Mux) AddGlobalMiddleware(handlers ... func(c *Context)) {
 	mux.Mutex.Lock()
 	defer mux.Mutex.Unlock()
 	mux.GlobalMiddlewares = append(mux.GlobalMiddlewares, handlers ...)
+}
+
+func (mux *Mux) isReadOnly() bool {
+	return !mux.AllowAdd
 }
 
 // Exec all registered middlewares.
