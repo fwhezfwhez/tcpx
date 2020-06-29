@@ -539,3 +539,88 @@ func TestConCurrentTCP(t *testing.T) {
 		}
 	}
 }
+
+func TestTcpX_TCP_AnchorMiddleware(t *testing.T) {
+	var serverStart = make(chan int, 1)
+	var testResult = make(chan error, 1)
+
+	// client
+	go func() {
+		<-serverStart
+
+		conn, err := net.Dial("tcp", "localhost:9004")
+		if err != nil {
+			testResult <- errorx.Wrap(err)
+			fmt.Println(errorx.Wrap(err).Error())
+			return
+		}
+
+		buf, e := PackJSON.Pack(1, "hello, I'm client")
+		buf2, e := PackJSON.Pack(2, "hello, I'm client")
+
+		if e != nil {
+			testResult <- errorx.Wrap(e)
+			fmt.Println(errorx.Wrap(e).Error())
+			return
+		}
+		conn.Write(buf)
+		conn.Write(buf2)
+	}()
+
+	// server
+	go func() {
+		srv := NewTcpX(JsonMarshaller{})
+		srv.OnMessage = nil
+		srv.BeforeExit(func() {
+			fmt.Println("exit")
+		})
+		// global middleware
+		srv.UseGlobal(func(c *Context) {
+			fmt.Println(1)
+		})
+		// anchor middleware
+		srv.Use("anchor1", func(c *Context) {
+			fmt.Println(2)
+		})
+		srv.AddHandler(2, func(c *Context) {
+			fmt.Println(3)
+		}, func(c *Context) {
+			fmt.Println(4)
+			c.Reply(10086, "hello, I'm server")
+			testResult <- nil
+		})
+		srv.UnUse("anchor1")
+
+
+		srv.Use("anchor1", func(c *Context) {
+			fmt.Println(2)
+		})
+
+		srv.UnUse("anchor1")
+		// router middleware
+		srv.AddHandler(1, func(c *Context) {
+			fmt.Println(3)
+		}, func(c *Context) {
+			fmt.Println(4)
+			c.Reply(10086, "hello, I'm server")
+			testResult <- nil
+		})
+
+		go func() {
+			time.Sleep(time.Second * 10)
+			serverStart <- 1
+		}()
+		e := srv.ListenAndServeTCP("tcp", ":9004")
+		if e != nil {
+			testResult <- errorx.Wrap(e)
+			fmt.Println(e.Error())
+			return
+		}
+	}()
+
+	e := <-testResult
+	if e != nil {
+		fmt.Println(e.Error())
+		t.Fail()
+	}
+}
