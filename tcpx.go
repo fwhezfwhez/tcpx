@@ -908,22 +908,32 @@ func handleRaw(ctx *Context, tcpx *TcpX) {
 // - time out receiving interval heartbeat pack.
 func heartBeatWatch(ctx *Context, tcpx *TcpX) {
 	if tcpx.HeartBeatOn == true {
-		var times int
 		go func() {
+			defer func() {
+				// fmt.Println("心跳结束)
+				if e := recover(); e != nil {
+					Logger.Println("recover from : %v", e)
+				}
+			}()
+
+			var times int
+		L:
 			for {
 				if tcpx.State() == STATE_STOP {
 					ctx.CloseConn()
-					break
+					break L
 				}
 				select {
 				case <-ctx.HeartBeatChan():
-					continue
+					times = 0
+					continue L
 				case <-time.After(tcpx.HeatBeatInterval):
 					times++
 					if times == 3 {
 						_ = ctx.CloseConn()
+						return
 					}
-					return
+					continue L
 				case <-tcpx.closeAllSignal:
 					ctx.CloseConn()
 					return
