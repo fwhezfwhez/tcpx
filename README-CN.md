@@ -25,7 +25,7 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Why designing tcp framwork rather than the official?](#why-designing-tcp-framwork-rather-than-the-official)
+- [设计这个框架的缘由?](#%E8%AE%BE%E8%AE%A1%E8%BF%99%E4%B8%AA%E6%A1%86%E6%9E%B6%E7%9A%84%E7%BC%98%E7%94%B1)
 - [1. 开始](#1-%E5%BC%80%E5%A7%8B)
     - [必要依赖](#%E5%BF%85%E8%A6%81%E4%BE%9D%E8%B5%96)
     - [压测](#%E5%8E%8B%E6%B5%8B)
@@ -35,10 +35,10 @@
     - [2.2 在线、离线](#22-%E5%9C%A8%E7%BA%BF%E7%A6%BB%E7%BA%BF)
     - [2.3 优雅退出，重启](#23-%E4%BC%98%E9%9B%85%E9%80%80%E5%87%BA%E9%87%8D%E5%90%AF)
     - [2.4 中间件](#24-%E4%B8%AD%E9%97%B4%E4%BB%B6)
-    - [2.5 Pack-detail](#25-pack-detail)
-    - [2.6 Chat](#26-chat)
-    - [2.7 Raw](#27-raw)
-    - [2.8 ClientPool](#28-clientpool)
+    - [2.5 包协议详情](#25-%E5%8C%85%E5%8D%8F%E8%AE%AE%E8%AF%A6%E6%83%85)
+    - [2.6 聊天](#26-%E8%81%8A%E5%A4%A9)
+    - [2.7 无包协议通讯](#27-%E6%97%A0%E5%8C%85%E5%8D%8F%E8%AE%AE%E9%80%9A%E8%AE%AF)
+    - [2.8 用户池](#28-%E7%94%A8%E6%88%B7%E6%B1%A0)
     - [2.9 鉴权](#29-%E9%89%B4%E6%9D%83)
 - [3. 使用方法](#3-%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95)
   - [3.1 使用中间件的详情](#31-%E4%BD%BF%E7%94%A8%E4%B8%AD%E9%97%B4%E4%BB%B6%E7%9A%84%E8%AF%A6%E6%83%85)
@@ -59,8 +59,10 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-## Why designing tcp framwork rather than the official?
-Golang has greate support of tcp protocol in official libraries, but users still need to consider details, most profiling way will make project heavier and heavier.Tpcx aims to use tcp in a most friendly way.Most ussage paterns are like `github.com/gin-gonic/gin`.Users don't consider details. All they are advised touching is a context, most apis in `gin` are also accessable in tcpx.
+## 设计这个框架的缘由?
+Golang对tcp的支持十分友好，不过在包的拆组上，官方没有提供明确的方式。所以在对流协议的处理上，需要用特定的包协议来进行完整地拆包和组包。其次，同样一个服务，不同开发人，项目，协议类型的发起服务的写法，很难做到统一，有点群魔乱舞的味道。最后，传统的tcp处理，很容易写成switch方式来分发协议给不同处理函数，这样的处理方式很容易造成多人开发冲突，不美观而且会将项目变得很重。
+
+所以， tcpx提供安全完整的包协议，提供仿http-gin的写法，保持统一，并且，强制使用人按照类似http样式的路由来分发。基于这样的方式来开发，可以让项目变得和http一样简单。
 
 ## 1. 开始
 `go get github.com/fwhezfwhez/tcpx`
@@ -219,22 +221,24 @@ https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/middleware
 
 这里的例子可以告诉你，如何使用tcpx的中间件
 
-#### 2.5 Pack-detail
+#### 2.5 包协议详情
 https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/pack-detail
 
 tcpx自带包协议，这里的例子将会描述拆包装包的详情
 
-#### 2.6 Chat
+#### 2.6 聊天
 https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/chat
 
 这里是使用tcpx，实现了一个简单的聊天
 
-#### 2.7 Raw
+#### 2.7 无包协议通讯
 https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/raw
 
-如果你不喜欢tcpx自带的包协议，可以利用Raw方式来处理请求。以这种方式接入请求，只有全局中间件(r.UseGlobal)和锚中间件(r.Use)会生效。你会发现，使用srv.OnMessage其实等价于Raw+tcp包协议
+如果你不喜欢tcpx自带的包协议，可以利用Raw方式来处理请求。以这种方式接入请求，只有全局中间件(r.UseGlobal)和锚中间件(r.Use)会生效。你会发现，使用srv.OnMessage其实等价于Raw+tcp包协议。
 
-#### 2.8 ClientPool
+使用该通讯方式时，需要自主读流，拆包解析。
+
+#### 2.8 用户池
 https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/online-offline
 
 例子和2.2共享，使用offline和online时，需要使用tcpx自带的(很基本功能)的用户连接池。
