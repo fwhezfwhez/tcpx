@@ -7,11 +7,21 @@ All handler will pass through.
 `srv.UseGlobal(middleware)`
 
 #### anchor-middleware
-handler added after it's used.
+using `Use` and `UnUse` to seperate routers. In handlers below, middleware1 will make effect on handler, handler3
 
 ```go
 srv.Use("middleware-key", middleware)
 srv.AddHandler(messageID, handler)
+
+srv.UnUse("middleware-key")
+
+
+srv.AddHandler(messageID2, handler2)
+
+srv.Use("middleware-key", middleware)
+srv.AddHandler(messageID3, handler3)
+srv.UnUse("middleware-key")
+
 ```
 
 #### router-middleware
