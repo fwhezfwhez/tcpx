@@ -215,3 +215,25 @@ func TCPCallOnceJSON(network string, url string, messageID int, data interface{}
 	}
 	return nil
 }
+
+// get key-value from a header
+func headerGetString(header map[string]interface{}, key string) (string, bool, error) {
+	var exist bool
+	var value string
+	var valueI interface{}
+	if len(header) == 0 {
+		return "", false, nil
+	}
+	valueI, exist = header[key]
+
+	if !exist {
+		return "", exist, nil
+	}
+
+	var canConvert bool
+	value, canConvert = valueI.(string)
+	if !canConvert {
+		return "", exist, errorx.NewFromStringf("key '%s'exist but is not a string type", key)
+	}
+	return value, exist, nil
+}

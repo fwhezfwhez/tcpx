@@ -10,6 +10,31 @@ type Message struct {
 	Body      interface{}            `json:"body"`
 }
 
+func NewMessage(messageID int32, src interface{}) Message {
+	return Message{
+		MessageID: messageID,
+		Header: map[string]interface{}{
+			HEADER_ROUTER_KEY:   MESSAGEID,
+			HEADER_ROUTER_VALUE: messageID,
+		},
+		Body: src,
+	}
+}
+func NewURLPatternMessage(urlPattern string, src interface{}) Message {
+	return Message{
+		MessageID: 0,
+		Header: map[string]interface{}{
+			HEADER_ROUTER_KEY:   URLPATTERN,
+			HEADER_ROUTER_VALUE: urlPattern,
+		},
+		Body: src,
+	}
+}
+
+func (m *Message) Pack(marshaller Marshaller) ([]byte, error) {
+	return PackWithMarshaller(*m, marshaller)
+}
+
 // Get value of message's header whose key is 'key'
 // Get and Set don't have lock to ensure concurrently safe, which means
 // if you should never operate the header in multiple goroutines, it's better to design a context yourself per request

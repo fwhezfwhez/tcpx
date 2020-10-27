@@ -518,3 +518,38 @@ func PackStuff(messageID int32) []byte {
 	}
 	return buf
 }
+
+func URLPatternOf(stream []byte) (string, error) {
+	header, e := HeaderOf(stream)
+	if e != nil {
+		return "", errorx.Wrap(e)
+	}
+	str, _, e := headerGetString(header, HEADER_ROUTER_VALUE)
+	if e != nil {
+		return "", errorx.Wrap(e)
+	}
+
+	return str, nil
+}
+
+func RouteTypeOf(stream []byte) (string, error) {
+	header, e := HeaderOf(stream)
+	if e != nil {
+		return "", errorx.Wrap(e)
+	}
+	str, _, e := headerGetString(header, HEADER_ROUTER_KEY)
+	if e != nil {
+		return "", errorx.Wrap(e)
+	}
+
+	return str, nil
+}
+
+// pack detail
+func Pack(messageID int32, header map[string]interface{}, src interface{}, marshaller Marshaller) ([]byte, error) {
+	return PackWithMarshaller(Message{
+		MessageID: messageID,
+		Header:    header,
+		Body:      src,
+	}, marshaller)
+}

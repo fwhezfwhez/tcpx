@@ -83,10 +83,10 @@ func copyContext(ctx Context) *Context {
 	}
 
 	return &Context{
-		Conn:                 ctx.Conn,
-		L:                    ctx.L,
-		PacketConn:           ctx.PacketConn,
-		Addr:                 ctx.Addr,
+		Conn:       ctx.Conn,
+		L:          ctx.L,
+		PacketConn: ctx.PacketConn,
+		Addr:       ctx.Addr,
 		//UDPSession:           ctx.UDPSession,
 		PerConnectionContext: ctx.PerConnectionContext,
 		PerRequestContext:    ctx.PerConnectionContext,
@@ -258,9 +258,9 @@ func (ctx *Context) InitReaderAndWriter() error {
 	case "tcp":
 		ctx.ConnReader = ctx.Conn
 		ctx.ConnWriter = ctx.Conn
-	//case "kcp":
-	//	ctx.ConnReader = ctx.UDPSession
-	//	ctx.ConnWriter = ctx.UDPSession
+		//case "kcp":
+		//	ctx.ConnReader = ctx.UDPSession
+		//	ctx.ConnWriter = ctx.UDPSession
 
 		// udp not support writer and reader
 		//case "udp":
@@ -296,8 +296,8 @@ func (ctx *Context) CloseConn() error {
 	case "udp":
 
 		return ctx.PacketConn.Close()
-	//case "kcp":
-	//	return ctx.UDPSession.Close()
+		//case "kcp":
+		//	return ctx.UDPSession.Close()
 	}
 	return nil
 }
@@ -310,8 +310,8 @@ func (ctx *Context) SetDeadline(t time.Time) error {
 	case "udp":
 
 		return ctx.PacketConn.SetDeadline(t)
-	//case "kcp":
-	//	return ctx.UDPSession.SetDeadline(t)
+		//case "kcp":
+		//	return ctx.UDPSession.SetDeadline(t)
 	}
 	return nil
 }
@@ -324,8 +324,8 @@ func (ctx *Context) SetReadDeadline(t time.Time) error {
 	case "udp":
 
 		return ctx.PacketConn.SetReadDeadline(t)
-	//case "kcp":
-	//	return ctx.UDPSession.SetReadDeadline(t)
+		//case "kcp":
+		//	return ctx.UDPSession.SetReadDeadline(t)
 	}
 	return nil
 }
@@ -338,8 +338,8 @@ func (ctx *Context) SetWriteDeadline(t time.Time) error {
 	case "udp":
 
 		return ctx.PacketConn.SetWriteDeadline(t)
-	//case "kcp":
-	//	return ctx.UDPSession.SetWriteDeadline(t)
+		//case "kcp":
+		//	return ctx.UDPSession.SetWriteDeadline(t)
 	}
 	return nil
 }
@@ -501,10 +501,10 @@ func (ctx *Context) replyBuf(buf []byte) (e error) {
 		if _, e = ctx.PacketConn.WriteTo(buf, ctx.Addr); e != nil {
 			return errorx.Wrap(e)
 		}
-	//case "kcp":
-	//	if _, e = ctx.UDPSession.Write(buf); e != nil {
-	//		return errorx.Wrap(e)
-	//	}
+		//case "kcp":
+		//	if _, e = ctx.UDPSession.Write(buf); e != nil {
+		//		return errorx.Wrap(e)
+		//	}
 	}
 	return nil
 }
@@ -521,8 +521,8 @@ func (ctx Context) ClientIP() string {
 		clientAddr = ctx.Conn.RemoteAddr().String()
 	case "udp":
 		clientAddr = ctx.Addr.String()
-	//case "kcp":
-	//	clientAddr = ctx.UDPSession.RemoteAddr().String()
+		//case "kcp":
+		//	clientAddr = ctx.UDPSession.RemoteAddr().String()
 	}
 	arr := strings.Split(clientAddr, ":")
 	// ipv4
@@ -665,4 +665,45 @@ func (ctx *Context) RecvAuthPass() {
 func (ctx *Context) RecvAuthDeny() {
 	const DENY = -1
 	ctx.recvAuth <- DENY
+}
+
+func (ctx Context) RouterType() string {
+	return ctx.routerType()
+}
+
+func (ctx *Context) routerType() string {
+	if len(ctx.Stream) == 0 {
+		return MESSAGEID
+	}
+
+	header, e := HeaderOf(ctx.Stream)
+	if e != nil {
+		Logger.Println("header decode err: %s", errorx.Wrap(e).Error())
+		return MESSAGEID
+	}
+
+	if len(header) == 0 {
+		return MESSAGEID
+	}
+
+	routerTypeI, exist := header[HEADER_ROUTER_KEY]
+	if !exist {
+		return MESSAGEID
+	}
+
+	routerTypeStr, transfer := routerTypeI.(string)
+	if !transfer {
+		return MESSAGEID
+	}
+
+	if routerTypeStr == MESSAGEID {
+		return MESSAGEID
+	}
+
+	return routerTypeStr
+
+}
+
+func (ctx *Context) JSONURLPattern(urlPattern string, src interface{}) {
+	NewURLPatternMessage(urlPattern, src).Pack(JsonMarshaller{})
 }
