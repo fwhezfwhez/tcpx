@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
 	"net"
-	"os"
 	"tcpx"
 )
 
@@ -33,12 +32,28 @@ func main() {
 
 func Recv(conn net.Conn) {
 	for {
-		var buf = make([]byte, 500)
-		n, e := conn.Read(buf)
+		block, e := tcpx.Recv(conn)
 		if e != nil {
 			fmt.Println(errorx.Wrap(e).Error())
-			os.Exit(1)
+			return
 		}
-		fmt.Println(string(buf[:n]))
+		urlPattern, e := block.URLPattern()
+		if e != nil {
+			fmt.Println(errorx.Wrap(e).Error())
+			return
+		}
+
+		switch urlPattern {
+		case "/login/":
+			type LoginResponse struct {
+				Token string `json:"token"`
+			}
+			var lr LoginResponse
+			block.BindJSON(&lr)
+			fmt.Printf("recv login token: %s\n", lr.Token)
+		default:
+			fmt.Println("unexpected urlPattern")
+		}
+
 	}
 }

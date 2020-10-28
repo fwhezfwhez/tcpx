@@ -27,6 +27,7 @@ func login(c *tcpx.Context) {
 		fmt.Println(errorx.Wrap(e).Error())
 		return
 	}
-	fmt.Printf("hello %s\n", user.Username)
-
+	c.JSONURLPattern(map[string]interface{}{
+		"token": "cF9taWd1IiwiYXBwX2lkIjoiYWprIiwiZXhwIjoxNjAzODUwNDc5LCJnYW1lX2lkIjo2Ni",
+	})
 }
