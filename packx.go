@@ -528,7 +528,6 @@ func URLPatternOf(stream []byte) (string, error) {
 	if e != nil {
 		return "", errorx.Wrap(e)
 	}
-
 	return str, nil
 }
 
@@ -553,3 +552,4 @@ func Pack(messageID int32, header map[string]interface{}, src interface{}, marsh
 		Body:      src,
 	}, marshaller)
 }
+

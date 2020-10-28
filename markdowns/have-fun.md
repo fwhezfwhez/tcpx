@@ -28,6 +28,9 @@ srv.Use("limit_rate_middleware",limitRate)
 srv.AddHandler(4, limitTimes, increaseMoney)    //
 srv.UnUse("limit_rate_middleware")
 ```
+
+Note that middleware has its order: global-middleware -> anchor-middleware -> self middleware
+
 #### 1.4 A handler
 ```go
 func LogIP(c *tcpx.Context) {
@@ -60,4 +63,18 @@ func Login(c *tcpx.Context) {
         "token":"abc"
     })
 }
+```
+
+#### 1.7 Pack
+- message1 is a messageID-type message
+- message2 is a url-type message
+```go
+message1 := tcpx.NewMessage(12, map[string]interface{}{"username":"tommy"})
+buf1, _ := messag1.Pack(tcpx.JSONMarshaller{})
+
+message2 := tcpx.NewURLPatternMessage("/login/",map[string]interface{}{"username":"tommy"})
+buf2, _ := messag1.Pack(tcpx.JSONMarshaller{})
+
+// conn.Write(buf1)
+// conn.Write(buf2)
 ```

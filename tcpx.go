@@ -821,17 +821,17 @@ func handleMiddleware(ctx *Context, tcpx *TcpX) {
 		return
 	}
 
-	if ctx.routerType() == MESSAGEID {
+	if ctx.RouterType() == MESSAGEID {
 		handleMessageIDHandlers(ctx, tcpx)
 		return
 	}
 
-	if ctx.routerType() == URLPATTERN {
+	if ctx.RouterType() == URLPATTERN {
 		handleURLPatternHandlers(ctx, tcpx)
 		return
 	}
 
-	Logger.Println(errorx.NewFromStringf("unexpected router-type %s", ctx.routerType()))
+	Logger.Println(errorx.NewFromStringf("unexpected router-type %s", ctx.RouterType()))
 	return
 }
 

@@ -31,8 +31,8 @@ func NewURLPatternMessage(urlPattern string, src interface{}) Message {
 	}
 }
 
-func (m *Message) Pack(marshaller Marshaller) ([]byte, error) {
-	return PackWithMarshaller(*m, marshaller)
+func (m Message) Pack(marshaller Marshaller) ([]byte, error) {
+	return PackWithMarshaller(m, marshaller)
 }
 
 // Get value of message's header whose key is 'key'

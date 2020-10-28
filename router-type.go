@@ -5,4 +5,3 @@ const (
 	MESSAGEID  = "MESSAGE_ID"
 	URLPATTERN = "URL_PATTERN"
 )
-

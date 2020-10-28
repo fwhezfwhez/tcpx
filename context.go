@@ -667,43 +667,107 @@ func (ctx *Context) RecvAuthDeny() {
 	ctx.recvAuth <- DENY
 }
 
+// Decode ctx.Stream.Header["Router-Type"], expected 'MESSAGE_ID', 'URL_PATTERN'
 func (ctx Context) RouterType() string {
-	return ctx.routerType()
+	rt, cached := ctx.routerType()
+	if !cached {
+		ctx.setRouterType(rt)
+	}
+	return rt
 }
 
-func (ctx *Context) routerType() string {
+// return routertype, cached in ctx
+func (ctx *Context) routerType() (string, bool) {
+	rt, exist := ctx.GetCtxPerRequest("router_type")
+
+	if exist {
+		rtstr, transfer := rt.(string)
+		if transfer {
+			return rtstr, true
+		}
+	}
+
 	if len(ctx.Stream) == 0 {
-		return MESSAGEID
+		return MESSAGEID, false
 	}
 
 	header, e := HeaderOf(ctx.Stream)
 	if e != nil {
 		Logger.Println("header decode err: %s", errorx.Wrap(e).Error())
-		return MESSAGEID
+		return MESSAGEID, false
 	}
 
 	if len(header) == 0 {
-		return MESSAGEID
+		return MESSAGEID, false
 	}
 
 	routerTypeI, exist := header[HEADER_ROUTER_KEY]
 	if !exist {
-		return MESSAGEID
+		return MESSAGEID, false
 	}
 
 	routerTypeStr, transfer := routerTypeI.(string)
 	if !transfer {
-		return MESSAGEID
+		return MESSAGEID, false
 	}
 
 	if routerTypeStr == MESSAGEID {
-		return MESSAGEID
+		return MESSAGEID, false
 	}
 
-	return routerTypeStr
-
+	return routerTypeStr, false
 }
 
-func (ctx *Context) JSONURLPattern(urlPattern string, src interface{}) {
-	NewURLPatternMessage(urlPattern, src).Pack(JsonMarshaller{})
+// Will reply to client a message with specific url-pattern, used when message_type routing by url-pattern
+func (ctx *Context) JSONURLPattern(src interface{}) error {
+	urlPattern, e := ctx.GetURLPattern()
+	if e != nil {
+		return errorx.Wrap(e)
+	}
+	buf, e := NewURLPatternMessage(urlPattern, src).Pack(JsonMarshaller{})
+	if e != nil {
+		return errorx.Wrap(e)
+	}
+	if e := ctx.replyBuf(buf); e != nil {
+		return errorx.Wrap(e)
+	}
+	return nil
+}
+
+// Will reply to client a message with specific url-pattern. Its payload is marshalled by protobuf and require src implements proto.Message.
+// Used when message_type routing by url-pattern
+func (ctx *Context) ProtobufURLPattern(src interface{}) error {
+	urlPattern, e := ctx.GetURLPattern()
+	if e != nil {
+		return errorx.Wrap(e)
+	}
+	buf, e := NewURLPatternMessage(urlPattern, src).Pack(ProtobufMarshaller{})
+	if e != nil {
+		return errorx.Wrap(e)
+	}
+	if e := ctx.replyBuf(buf); e != nil {
+		return errorx.Wrap(e)
+	}
+	return nil
+}
+
+func (ctx *Context) setRouterType(routerType string) {
+	ctx.PerRequestContext.Store("router_type", routerType)
+}
+
+func (ctx *Context) GetURLPattern() (string, error) {
+	urlPattern, exist := ctx.PerRequestContext.Load("url_pattern")
+	if exist {
+		urlPatternStr, transfer := urlPattern.(string)
+		if transfer {
+			return urlPatternStr, nil
+		}
+	}
+	urlPatternStr, e := URLPatternOf(ctx.Stream)
+	if e != nil {
+		return "", errorx.Wrap(e)
+	}
+
+	ctx.PerRequestContext.Store("url_pattern", urlPatternStr)
+	return urlPatternStr, nil
 }
