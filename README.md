@@ -55,6 +55,25 @@ https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/pack-detail
 []byte -- body                marshal by marshaller
 ```
 
+According to this pack rule, tcpx has 2 well-designed routing ways and their pack structure:
+
+**messageID type pack**
+```json
+header:
+{
+    "Router-Type": "MESSAGE_ID"
+}
+```
+
+**urlPattern pack**
+```json
+header:
+{
+    "Router-Type": "URL_PATTERN"
+    "Router-Pattern-Value": "/login/"
+}
+```
+
 #### Chat
 https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/chat
 
@@ -63,14 +82,4 @@ It examples a chat using tcpx.
 #### Raw
 https://github.com/fwhezfwhez/tcpx/tree/master/examples/modules/raw
 
-It examples how to send stream without rule, nothing to do with `messageID system`. You can send all stream you want. Global middleware and anchor middleware are still working as the example said.
-
-`messageID block system`:
-```text
-[4]byte -- length             fixed_size,binary big endian encode
-[4]byte -- messageID          fixed_size,binary big endian encode
-[4]byte -- headerLength       fixed_size,binary big endian encode
-[4]byte -- bodyLength         fixed_size,binary big endian encode
-[]byte -- header              marshal by json
-[]byte -- body                marshal by marshaller
-```
+It examples how to send stream without rule, nothing to do with `messageID/urlPattern system`. You can send all stream you want. Global middleware and anchor middleware are still working as the example said.
