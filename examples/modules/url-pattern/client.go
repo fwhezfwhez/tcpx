@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
 	"net"
-	"tcpx"
+	//"tcpx"
+	"github.com/fwhezfwhez/tcpx"
 )
 
 func main() {
