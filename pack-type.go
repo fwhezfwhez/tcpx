@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"github.com/fwhezfwhez/errorx"
-	"github.com/pelletier/go-toml"
+	"github.com/fwhezfwhez/go-toml"
 	"google.golang.org/protobuf/proto"
 	"gopkg.in/yaml.v2"
 )

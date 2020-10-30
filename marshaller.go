@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
+	"github.com/fwhezfwhez/go-toml"
 	"github.com/golang/protobuf/proto"
-	"github.com/pelletier/go-toml"
 	"gopkg.in/yaml.v2"
 )
 

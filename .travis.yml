@@ -9,11 +9,10 @@ go:
   - 1.14.x
 
 env:
-  - GOARCH=amd64
-  - GOARCH=386
-  - CODECOV_TOKEN="7bc84064-5397-473d-991a-c34c91547e8a"
-  - GO111MODULE=off
-  - GO111MODULE=on
+  - GOARCH=amd64 CODECOV_TOKEN="7bc84064-5397-473d-991a-c34c91547e8a"
+  - GOARCH=386 CODECOV_TOKEN="7bc84064-5397-473d-991a-c34c91547e8a"
+  - GO111MODULE=off CODECOV_TOKEN="7bc84064-5397-473d-991a-c34c91547e8a"
+  - GO111MODULE=on CODECOV_TOKEN="7bc84064-5397-473d-991a-c34c91547e8a"
 
 sudo: true
 
@@ -22,7 +21,7 @@ go_import_path: github.com/fwhezfwhez/tcpx
 before_install:
   # - go get -t -v ./...
   - go get github.com/fwhezfwhez/errorx
-  - go get github.com/pelletier/go-toml
+  - go get github.com/fwhezfwhez/go-toml
   - go get github.com/golang/protobuf/proto
   - go get gopkg.in/yaml.v2
 
