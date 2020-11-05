@@ -314,10 +314,26 @@ func (tcpx *TcpX) AddHandler(messageID int32, handlers ...func(ctx *Context)) {
 		tcpx.Mux = NewMux()
 	}
 	tcpx.Mux.AddHandleFunc(messageID, f)
-	var messageIDAnchor MessageIDAnchor
-	messageIDAnchor.MessageID = messageID
-	messageIDAnchor.AnchorIndex = tcpx.Mux.CurrentAnchorIndex()
+	var messageIDAnchor = NewMessageIDAnchor(messageID, tcpx.Mux.CurrentAnchorIndex())
 	tcpx.Mux.AddMessageIDAnchor(messageIDAnchor)
+}
+
+func (tcpx *TcpX) Any(urlPattern string, handlers ...func(ctx *Context)) {
+	if len(handlers) <= 0 {
+		panic(errorx.NewFromStringf("handlers should more than 1 but got %d", len(handlers)))
+	}
+	if len(handlers) > 1 {
+		tcpx.Mux.urlMux.AddURLPatternHandler(urlPattern, handlers...)
+	}
+
+	//f := handlers[len(handlers)-1]
+	//if tcpx.Mux == nil {
+	//	tcpx.Mux = NewMux()
+	//}
+	//tcpx.Mux.AddHandleFunc(messageID, f)
+	tcpx.Mux.Any(urlPattern, handlers...)
+	var messageIDAnchor = NewUrlPatternAnchor(urlPattern, tcpx.Mux.CurrentAnchorIndex())
+	tcpx.Mux.AddURLAnchor(messageIDAnchor)
 }
 
 // Start to listen.
@@ -801,76 +817,143 @@ func (tcpx *TcpX) ListenAndServeGRPC(network, addr string) error {
 // However, this method is not open export for outer uset. When rebuild new protocol server, this will be considerately used.
 func handleMiddleware(ctx *Context, tcpx *TcpX) {
 	if tcpx.OnMessage != nil {
-		// tcpx.Mux.execAllMiddlewares(ctx)
-		//tcpx.OnMessage(ctx)
-		if ctx.handlers == nil {
-			ctx.handlers = make([]func(c *Context), 0, 10)
-		}
-		ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
-		for _, v := range tcpx.Mux.MiddlewareAnchors {
+		handleOnMessage(ctx, tcpx)
+		return
+	}
+
+	if ctx.RouterType() == MESSAGEID {
+		handleMessageIDHandlers(ctx, tcpx)
+		return
+	}
+
+	if ctx.RouterType() == URLPATTERN {
+		handleURLPatternHandlers(ctx, tcpx)
+		return
+	}
+
+	Logger.Println(errorx.NewFromStringf("unexpected router-type %s", ctx.RouterType()))
+	return
+}
+
+// If tcpx.OnMessage is not nil, handlers of messageID type nor urlPattern type will not work
+func handleOnMessage(ctx *Context, tcpx *TcpX) {
+	if ctx.handlers == nil {
+		ctx.handlers = make([]func(c *Context), 0, 10)
+	}
+	ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
+	for _, v := range tcpx.Mux.MiddlewareAnchors {
+		ctx.handlers = append(ctx.handlers, v.Middleware)
+	}
+	ctx.handlers = append(ctx.handlers, tcpx.OnMessage)
+	if len(ctx.handlers) > 0 {
+		ctx.Next()
+	}
+	ctx.Reset()
+}
+
+// messageID router will be handled here
+func handleMessageIDHandlers(ctx *Context, tcpx *TcpX) {
+	messageID, e := tcpx.Packx.MessageIDOf(ctx.Stream)
+	if e != nil {
+		Logger.Println(errorx.Wrap(e).Error())
+		return
+	}
+
+	handler, ok := tcpx.Mux.Handlers[messageID]
+	if !ok {
+		Logger.Println(fmt.Sprintf("messageID %d handler not found", messageID))
+		return
+	}
+	if messageID == tcpx.HeartBeatMessageID && !tcpx.ThroughMiddleware {
+		handler(ctx)
+		return
+	}
+
+	if messageID == tcpx.AuthMessageID && !tcpx.AuthThroughMiddleware {
+		handler(ctx)
+		return
+	}
+
+	if ctx.handlers == nil {
+		ctx.handlers = make([]func(c *Context), 0, 10)
+	}
+
+	// global middleware
+	ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
+	// anchor middleware
+	messageIDAnchorIndex := tcpx.Mux.AnchorIndexOfMessageID(messageID)
+	// ######## BUG REPORT ########
+	// old: anchor type middleware may be added unordered.
+	// ############################
+	//for _, v := range tcpx.Mux.MiddlewareAnchorMap {
+	//	if messageIDAnchorIndex > v.AnchorIndex && messageIDAnchorIndex <= v.ExpireAnchorIndex {
+	//		ctx.handlers = append(ctx.handlers, v.Middleware)
+	//	}
+	//}
+	// new:
+	for i, _ := range tcpx.Mux.MiddlewareAnchors {
+		v := tcpx.Mux.MiddlewareAnchors[i]
+		if v.Contains(messageIDAnchorIndex) {
 			ctx.handlers = append(ctx.handlers, v.Middleware)
 		}
-		ctx.handlers = append(ctx.handlers, tcpx.OnMessage)
-		if len(ctx.handlers) > 0 {
-			ctx.Next()
-		}
-		ctx.Reset()
-	} else {
-		messageID, e := tcpx.Packx.MessageIDOf(ctx.Stream)
-		if e != nil {
-			Logger.Println(errorx.Wrap(e).Error())
-			return
-		}
-
-		handler, ok := tcpx.Mux.Handlers[messageID]
-		if !ok {
-			Logger.Println(fmt.Sprintf("messageID %d handler not found", messageID))
-			return
-		}
-		if messageID == tcpx.HeartBeatMessageID && !tcpx.ThroughMiddleware {
-			handler(ctx)
-			return
-		}
-
-		if messageID == tcpx.AuthMessageID && !tcpx.AuthThroughMiddleware {
-			handler(ctx)
-			return
-		}
-
-		if ctx.handlers == nil {
-			ctx.handlers = make([]func(c *Context), 0, 10)
-		}
-
-		// global middleware
-		ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
-		// anchor middleware
-		messageIDAnchorIndex := tcpx.Mux.AnchorIndexOfMessageID(messageID)
-		// ######## BUG REPORT ########
-		// old: anchor type middleware may be added unordered.
-		// ############################
-		//for _, v := range tcpx.Mux.MiddlewareAnchorMap {
-		//	if messageIDAnchorIndex > v.AnchorIndex && messageIDAnchorIndex <= v.ExpireAnchorIndex {
-		//		ctx.handlers = append(ctx.handlers, v.Middleware)
-		//	}
-		//}
-		// new:
-		for i, _ := range tcpx.Mux.MiddlewareAnchors {
-			v := tcpx.Mux.MiddlewareAnchors[i]
-			if v.Contains(messageIDAnchorIndex) {
-				ctx.handlers = append(ctx.handlers, v.Middleware)
-			}
-		}
-
-		// self-related middleware
-		ctx.handlers = append(ctx.handlers, tcpx.Mux.MessageIDSelfMiddleware[messageID]...)
-		// handler
-		ctx.handlers = append(ctx.handlers, handler)
-
-		if len(ctx.handlers) > 0 {
-			ctx.Next()
-		}
-		ctx.Reset()
 	}
+
+	// self-related middleware
+	ctx.handlers = append(ctx.handlers, tcpx.Mux.MessageIDSelfMiddleware[messageID]...)
+	// handler
+	ctx.handlers = append(ctx.handlers, handler)
+
+	if len(ctx.handlers) > 0 {
+		ctx.Next()
+	}
+	ctx.Reset()
+}
+
+// messageID router will be handled here
+func handleURLPatternHandlers(ctx *Context, tcpx *TcpX) {
+	urlPattern, e := URLPatternOf(ctx.Stream)
+	if e != nil {
+		Logger.Println(errorx.Wrap(e).Error())
+		return
+	}
+
+	handlers, ok := tcpx.Mux.urlMux.urlPatternMux[urlPattern]
+	if !ok {
+		Logger.Println(fmt.Sprintf("urlPattern %s handler not found", urlPattern))
+		return
+	}
+	//if messageID == tcpx.HeartBeatMessageID && !tcpx.ThroughMiddleware {
+	//	handler(ctx)
+	//	return
+	//}
+
+	//if messageID == tcpx.AuthMessageID && !tcpx.AuthThroughMiddleware {
+	//	handler(ctx)
+	//	return
+	//}
+
+	if ctx.handlers == nil {
+		ctx.handlers = make([]func(c *Context), 0, 10)
+	}
+
+	// global middleware
+	ctx.handlers = append(ctx.handlers, tcpx.Mux.GlobalMiddlewares...)
+	// anchor middleware
+	urlPatternHandlerAnchorIndex := tcpx.Mux.AnchorIndexOfURLPattern(urlPattern)
+
+	for i, _ := range tcpx.Mux.MiddlewareAnchors {
+		v := tcpx.Mux.MiddlewareAnchors[i]
+		if v.Contains(urlPatternHandlerAnchorIndex) {
+			ctx.handlers = append(ctx.handlers, v.Middleware)
+		}
+	}
+
+	ctx.handlers = append(ctx.handlers, handlers...)
+
+	if len(ctx.handlers) > 0 {
+		ctx.Next()
+	}
+	ctx.Reset()
 }
 
 func handlePipe(ctxs []*Context, tcpx *TcpX) {

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/fwhezfwhez/errorx"
 	"github.com/golang/protobuf/proto"
-	"github.com/pelletier/go-toml"
 	"gopkg.in/yaml.v2"
 )
 
@@ -76,10 +75,10 @@ func (ym YamlMarshaller) MarshalName() string {
 type TomlMarshaller struct{}
 
 func (tm TomlMarshaller) Marshal(v interface{}) ([]byte, error) {
-	return toml.Marshal(v)
+	return MarshalTOML(v)
 }
 func (tm TomlMarshaller) Unmarshal(data []byte, dest interface{}) error {
-	return toml.Unmarshal(data, dest)
+	return UnmarshalTOML(data, dest)
 }
 
 func (tm TomlMarshaller) MarshalName() string {

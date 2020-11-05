@@ -1,9 +1,11 @@
 package tcpx
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"github.com/BurntSushi/toml"
 	"io"
 	"net"
 	"reflect"
@@ -53,6 +55,9 @@ func In(s string, arr []string) bool {
 func Defer(f func(), handlePanicError ...func(interface{})) {
 	defer func() {
 		if e := recover(); e != nil {
+			if len(handlePanicError) == 0 {
+				fmt.Printf("recover from %s\n", errorx.NewFromStringf("%v", e))
+			}
 			for _, handler := range handlePanicError {
 				handler(e)
 			}
@@ -116,11 +121,11 @@ func TCPConnect(network string, url string) (net.Conn, error) {
 }
 
 // WriteJSON will write conn a message wrapped by tcpx.JSONMarshaller
-func WriteJSON(conn net.Conn, messageID int32, message interface{}) error {
+func WriteJSON(conn net.Conn, messageID int32, src interface{}) error {
 	msg := Message{
 		MessageID: messageID,
 		Header:    nil,
-		Body:      message,
+		Body:      src,
 	}
 
 	buf, e := PackWithMarshaller(msg, JsonMarshaller{})
@@ -214,4 +219,45 @@ func TCPCallOnceJSON(network string, url string, messageID int, data interface{}
 		return errorx.Wrap(e)
 	}
 	return nil
+}
+
+// get key-value from a header
+func headerGetString(header map[string]interface{}, key string) (string, bool, error) {
+	var exist bool
+	var value string
+	var valueI interface{}
+	if len(header) == 0 {
+		return "", false, nil
+	}
+	valueI, exist = header[key]
+
+	if !exist {
+		return "", exist, nil
+	}
+
+	var canConvert bool
+	value, canConvert = valueI.(string)
+	if !canConvert {
+		return "", exist, errorx.NewFromStringf("key '%s'exist but is not a string type", key)
+	}
+	return value, exist, nil
+}
+
+// Recv a block of message from connection.
+// To use this, it require sender sent message well packed by tcpx.Pack()
+func Recv(conn net.Conn) (PackType, error) {
+	return FirstBlockOf(conn)
+}
+
+func MarshalTOML(src interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	enc := toml.NewEncoder(&buf)
+	if e := enc.Encode(src); e != nil {
+		return nil, errorx.Wrap(e)
+	}
+	return buf.Bytes(), nil
+}
+
+func UnmarshalTOML(buf []byte, dest interface{}) error {
+	return toml.Unmarshal(buf, dest)
 }

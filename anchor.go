@@ -7,8 +7,23 @@ import (
 )
 
 type MessageIDAnchor struct {
+	URLPattern  string
 	MessageID   int32
 	AnchorIndex int
+}
+
+func NewMessageIDAnchor(messageID int32, anchorIndex int) MessageIDAnchor {
+	return MessageIDAnchor{
+		MessageID:   messageID,
+		AnchorIndex: anchorIndex,
+	}
+}
+
+func NewUrlPatternAnchor(urlPattern string, anchorIndex int) MessageIDAnchor {
+	return MessageIDAnchor{
+		URLPattern:  urlPattern,
+		AnchorIndex: anchorIndex,
+	}
 }
 
 type AnchorMiddlewareInfo struct {
