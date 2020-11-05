@@ -1,9 +1,11 @@
 package tcpx
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"github.com/BurntSushi/toml"
 	"io"
 	"net"
 	"reflect"
@@ -245,4 +247,17 @@ func headerGetString(header map[string]interface{}, key string) (string, bool, e
 // To use this, it require sender sent message well packed by tcpx.Pack()
 func Recv(conn net.Conn) (PackType, error) {
 	return FirstBlockOf(conn)
+}
+
+func MarshalTOML(src interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	enc := toml.NewEncoder(&buf)
+	if e := enc.Encode(src); e != nil {
+		return nil, errorx.Wrap(e)
+	}
+	return buf.Bytes(), nil
+}
+
+func UnmarshalTOML(buf []byte, dest interface{}) error {
+	return toml.Unmarshal(buf, dest)
 }

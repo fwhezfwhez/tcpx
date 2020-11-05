@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/fwhezfwhez/go-toml"
+	"github.com/fwhezfwhez/tcpx"
 )
 
 func main() {
@@ -29,7 +29,7 @@ func main() {
 		panic(e)
 	}
 	binary.BigEndian.PutUint32(headerLengthBuf, uint32(len(headerBuf)))
-	bodyBuf, e = toml.Marshal(payload)
+	bodyBuf, e = tcpx.MarshalTOML(payload)
 	if e != nil {
 		panic(e)
 	}

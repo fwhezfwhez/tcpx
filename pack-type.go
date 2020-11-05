@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"github.com/fwhezfwhez/errorx"
-	"github.com/fwhezfwhez/go-toml"
 	"google.golang.org/protobuf/proto"
 	"gopkg.in/yaml.v2"
 )
@@ -41,7 +40,7 @@ func (pt *PackType) BindTOML(dest interface{}) error {
 		return errorx.Wrap(e)
 	}
 
-	if e := toml.Unmarshal(body, dest); e != nil {
+	if e := UnmarshalTOML(body, dest); e != nil {
 		return errorx.Wrap(e)
 	}
 	return nil

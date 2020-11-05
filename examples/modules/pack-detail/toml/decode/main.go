@@ -4,7 +4,8 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/fwhezfwhez/go-toml"
+	"github.com/fwhezfwhez/tcpx"
+	//"tcpx"
 )
 
 func main() {
@@ -23,7 +24,7 @@ func main() {
 	}
 
 	json.Unmarshal(buf[16:16+headerLength], &header)
-	toml.Unmarshal(buf[16+headerLength:16+headerLength+bodyLength], &body)
+	tcpx.UnmarshalTOML(buf[16+headerLength:16+headerLength+bodyLength], &body)
 
 	fmt.Println(length)
 	fmt.Println(messageID)
