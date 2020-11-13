@@ -54,6 +54,8 @@ type TcpX struct {
 	HeartBeatMessageID int32         // which messageID to listen to heartbeat
 	ThroughMiddleware  bool          // whether heartbeat go through middleware
 
+	OnHeartbeatLoss func(c *Context) // when recv no heartbeat more than max configured times(default 3), will trigger this function
+
 	// built-in clientPool
 	// clientPool is defined in github.com/tcpx/client-pool.go, you might design your own pool yourself as
 	// long as you set builtInPool = false
@@ -203,6 +205,10 @@ func (tcpx *TcpX) HeartBeatMode(on bool, duration time.Duration) *TcpX {
 		})
 	}
 	return tcpx
+}
+
+func (tcpx *TcpX) SetEventOnHeartbeatLoss(f func(c *Context)) {
+	tcpx.OnHeartbeatLoss = f
 }
 
 // specific args for heartbeat
@@ -1027,6 +1033,12 @@ func heartBeatWatch(ctx *Context, tcpx *TcpX) {
 				case <-time.After(tcpx.HeatBeatInterval):
 					times++
 					if times == 3 {
+						// heartbeat loss handler
+
+						if tcpx.OnHeartbeatLoss != nil {
+							tcpx.OnHeartbeatLoss(copyContext(*ctx))
+						}
+
 						_ = ctx.CloseConn()
 						return
 					}
