@@ -128,7 +128,7 @@ func FirstBlockOfLimitMaxByte(r io.Reader, maxByte int32) ([]byte, error) {
 	if maxByte <= 0 {
 		return UnpackToBlockFromReader(r)
 	}
-	return UnpackToBlockFromReaderLimitMaxLengthOfByte(r, maxByte)
+	return UnpackToBlockFromReaderLimitMaxLengthOfByte(r, int(maxByte))
 }
 
 // a stream from a buffer which can be apart by protocol.
