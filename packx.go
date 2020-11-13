@@ -87,6 +87,12 @@ func (packx Packx) Unpack(stream []byte, dest interface{}) (Message, error) {
 func (packx Packx) FirstBlockOf(r io.Reader) ([]byte, error) {
 	return FirstBlockOf(r)
 }
+func (packx Packx) FirstBlockOfLimitMaxByte(r io.Reader, maxByte int32) ([]byte, error) {
+	if maxByte <= 0 {
+		return FirstBlockOf(r)
+	}
+	return FirstBlockOfLimitMaxByte(r, maxByte)
+}
 
 // returns the first block's messageID, header, body marshalled stream, error.
 func UnPackFromReader(r io.Reader) (int32, map[string]interface{}, []byte, error) {
@@ -116,6 +122,13 @@ func UnPackFromReader(r io.Reader) (int32, map[string]interface{}, []byte, error
 // for old usage remaining useful, old packx.FirstBlockOf is still useful
 func FirstBlockOf(r io.Reader) ([]byte, error) {
 	return UnpackToBlockFromReader(r)
+}
+
+func FirstBlockOfLimitMaxByte(r io.Reader, maxByte int32) ([]byte, error) {
+	if maxByte <= 0 {
+		return UnpackToBlockFromReader(r)
+	}
+	return UnpackToBlockFromReaderLimitMaxLengthOfByte(r, int(maxByte))
 }
 
 // a stream from a buffer which can be apart by protocol.
@@ -443,6 +456,38 @@ func UnpackToBlockFromReader(reader io.Reader) ([]byte, error) {
 	return append(info, content ...), nil
 }
 
+func UnpackToBlockFromReaderLimitMaxLengthOfByte(reader io.Reader, maxByTe int) ([]byte, error) {
+	if reader == nil {
+		return nil, errors.New("reader is nil")
+	}
+	var info = make([]byte, 4, 4)
+	if e := readUntil(reader, info); e != nil {
+		if e == io.EOF {
+			return nil, e
+		}
+		return nil, errorx.Wrap(e)
+	}
+
+	length, e := packx.LengthOf(info)
+	if e != nil {
+		return nil, e
+	}
+
+	if length > int32(maxByTe) {
+		return nil, errorx.NewFromStringf("recv message beyond max byte length limit(%d), got (%d)", maxByTe, length)
+	}
+
+	var content = make([]byte, length, length)
+	if e := readUntil(reader, content); e != nil {
+		if e == io.EOF {
+			return nil, e
+		}
+		return nil, errorx.Wrap(e)
+	}
+
+	return append(info, content ...), nil
+}
+
 func readUntil(reader io.Reader, buf []byte) error {
 	if len(buf) == 0 {
 		return nil
@@ -552,4 +597,3 @@ func Pack(messageID int32, header map[string]interface{}, src interface{}, marsh
 		Body:      src,
 	}, marshaller)
 }
-

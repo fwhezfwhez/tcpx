@@ -45,6 +45,9 @@ type TcpX struct {
 	writeDeadLine time.Time
 	readDeadLine  time.Time
 
+	// max limit
+	maxByte int32
+
 	// heartbeat setting
 	HeartBeatOn        bool          // whether start a goroutine to spy on each connection
 	HeatBeatInterval   time.Duration // heartbeat should receive in the interval
@@ -132,6 +135,17 @@ func (tcpx *TcpX) WithAuthDetail(yes bool, duration time.Duration, throughMiddle
 // If you want change deadline while it's running, use ctx.SetDeadline(t time.Time) instead.
 func (tcpx *TcpX) SetDeadline(t time.Time) {
 	tcpx.deadLine = t
+}
+
+var (
+	B  = 1
+	KB = 1024
+	MB = 1024 * 1024
+	GB = 1024 * 1024 * 1024
+)
+
+func (tcpx *TcpX) SetMaxBytePerMessage(maxByte int32) {
+	tcpx.maxByte = maxByte
 }
 
 // Set read deadline
@@ -534,7 +548,7 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 			}
 			var e error
 			for {
-				ctx.Stream, e = ctx.Packx.FirstBlockOf(ctx.Conn)
+				ctx.Stream, e = ctx.Packx.FirstBlockOfLimitMaxByte(ctx.Conn, tcpx.maxByte)
 				if e != nil {
 					if e == io.EOF {
 						break
@@ -556,7 +570,7 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 					ctxs := make([]*Context, restN+1)
 					ctxs[0] = tmpContext
 					for i := 1; i < restN+1; i++ {
-						ctx.Stream, e = ctx.Packx.FirstBlockOf(ctx.Conn)
+						ctx.Stream, e = ctx.Packx.FirstBlockOfLimitMaxByte(ctx.Conn, tcpx.maxByte)
 						if e != nil {
 							if e == io.EOF {
 								break
