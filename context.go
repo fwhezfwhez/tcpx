@@ -375,6 +375,17 @@ func (ctx *Context) Username() (string, bool) {
 	return usernameI.(string), ok
 }
 
+
+// Context's connection scope saves an unique key to the connection pool
+// Before using this, ctx.SetUsername should be call first
+func (ctx *Context) GetUsername() (string) {
+	usernameI, ok := ctx.GetCtxPerConn("tcpx-username")
+	if !ok {
+		return ""
+	}
+	return usernameI.(string)
+}
+
 // When you want to tag an username to the context, use it, or it will be regarded as an anonymous user
 func (ctx *Context) SetUsername(username string) {
 	ctx.setCtxPerConn("tcpx-username", username)
