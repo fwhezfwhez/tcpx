@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"tcpx"
+	"github.com/fwhezfwhez/tcpx"
 )
 
 func main() {
