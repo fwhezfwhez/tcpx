@@ -2,6 +2,7 @@
 package tcpx
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -88,6 +89,10 @@ type TcpX struct {
 	// external for handle any stream
 	// only support tcp/kcp
 	HandleRaw func(c *Context)
+
+	// tls
+	// If you want your tcp server using certs, using this field
+	TLSConfig *tls.Config
 }
 
 type PropertyCache struct {
@@ -369,7 +374,7 @@ func (tcpx *TcpX) ListenAndServe(network, addr string) error {
 		return tcpx.ListenAndServeUDP(network, addr)
 	}
 	if In(network, []string{"kcp"}) {
-		return fmt.Errorf("tcpx only supports kcp in v3.0.0-")
+		return fmt.Errorf("%s", "tcpx only supports kcp in v3.0.0-")
 		// return tcpx.ListenAdServeKCP(network, addr)
 	}
 	//if In(network, []string{"http", "https"}) {
@@ -489,7 +494,17 @@ func (tcpx *TcpX) ListenAndServeTCP(network, addr string) error {
 			return
 		}
 	}()
-	listener, err := net.Listen(network, addr)
+	var listener net.Listener
+	var err error
+	if tcpx.TLSConfig == nil {
+		listener, err = net.Listen(network, addr)
+	} else {
+		listener, err = newListener(listenerConfig{
+			Network:   network,
+			Addr:      addr,
+			TLSConfig: tcpx.TLSConfig,
+		})
+	}
 	if err != nil {
 		return err
 	}
@@ -1246,4 +1261,15 @@ func isPipe(block []byte) (bool, int, error) {
 		return true, length - 1, nil
 	}
 	return false, 0, nil
+}
+
+// certPath and keyPath is dir path where cert.pem and key.pem is put
+func (tcpx *TcpX) LoadTLSFile(certPath string, keyPath string) error {
+	cer, e := tls.LoadX509KeyPair(certPath, keyPath)
+	if e != nil {
+		return errorx.Wrap(e)
+	}
+	config := tls.Config{Certificates: []tls.Certificate{cer}}
+	tcpx.TLSConfig = &config
+	return nil
 }

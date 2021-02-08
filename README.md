@@ -19,6 +19,7 @@ A very convenient tcp framework in golang.
 - [Middleware](https://github.com/fwhezfwhez/tcpx/tree/master/markdowns/middleware.md)
 - [Message](https://github.com/fwhezfwhez/tcpx/tree/master/markdowns/message.md)
 - [Marshaller](https://github.com/fwhezfwhez/tcpx/tree/master/markdowns/marshaller.md)
+- [TLS](https://github.com/fwhezfwhez/tcpx/tree/master/markdowns/tls.md)
 
 ## Start
 `go get github.com/fwhezfwhez/tcpx`
