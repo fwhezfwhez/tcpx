@@ -261,3 +261,26 @@ func MarshalTOML(src interface{}) ([]byte, error) {
 func UnmarshalTOML(buf []byte, dest interface{}) error {
 	return toml.Unmarshal(buf, dest)
 }
+
+func write(conn net.Conn, buf []byte) error {
+	length := len(buf)
+	if length == 0 {
+		return nil
+	}
+
+	var sum int
+	var slice []byte
+	for {
+		slice = buf
+		n, e := conn.Write(slice)
+		if e != nil {
+			return e
+		}
+		sum += n
+		if sum >= length {
+			break
+		}
+		slice = slice[n:]
+	}
+	return nil
+}
