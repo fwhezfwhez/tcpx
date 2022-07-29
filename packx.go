@@ -166,18 +166,18 @@ func MessageIDOf(stream []byte) (int32, error) {
 
 // Length of the stream starting validly.
 // Length doesn't include length flag itself, it refers to a valid message length after it.
-func (packx Packx) LengthOf(stream []byte) (int32, error) {
+func (packx Packx) LengthOf(stream []byte) (uint32, error) {
 	return LengthOf(stream)
 }
 
 // Length of the stream starting validly.
 // Length doesn't include length flag itself, it refers to a valid message length after it.
-func LengthOf(stream []byte) (int32, error) {
+func LengthOf(stream []byte) (uint32, error) {
 	if len(stream) < 4 {
 		return 0, errors.New(fmt.Sprintf("stream lenth should be bigger than 4"))
 	}
 	length := binary.BigEndian.Uint32(stream[0:4])
-	return int32(length), nil
+	return length, nil
 }
 
 // Header length of a stream received
@@ -473,7 +473,7 @@ func UnpackToBlockFromReaderLimitMaxLengthOfByte(reader io.Reader, maxByTe int) 
 		return nil, e
 	}
 
-	if length > int32(maxByTe) {
+	if length > uint32(maxByTe) {
 		return nil, errorx.NewFromStringf("recv message beyond max byte length limit(%d), got (%d)", maxByTe, length)
 	}
 
